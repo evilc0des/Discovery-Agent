@@ -16,11 +16,13 @@ interface Coverage {
 
 interface SessionData {
   sessionId: string;
+  status: string;
   chatHistory: Array<{
     role: string;
     content: string;
   }>;
   coverage: Coverage;
+  briefMarkdown: string;
 }
 
 function ProgressBar({ coverage }: { coverage: Coverage }) {
@@ -33,7 +35,7 @@ function ProgressBar({ coverage }: { coverage: Coverage }) {
   return (
     <div className="mb-6">
       <div className="flex h-4 rounded-full overflow-hidden bg-gray-200">
-        {segments.map((segment, i) => (
+        {segments.map((segment) => (
           <div
             key={segment.label}
             className={`${segment.color} transition-all duration-500`}
@@ -67,7 +69,10 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
     functional: 0,
     aesthetics: 0,
   });
+  const [sessionStatus, setSessionStatus] = useState<string>('in_discovery');
+  const [briefMarkdown, setBriefMarkdown] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -84,6 +89,8 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
             }))
           );
           setCoverage(data.coverage);
+          setSessionStatus(data.status);
+          setBriefMarkdown(data.briefMarkdown || '');
         })
         .catch(() => {
           // Session not found, will start fresh
@@ -170,6 +177,7 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
         let buffer = '';
         let lastMessage = '';
         let lastCoverage = coverage;
+        let lastIsFinal = false;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -193,6 +201,9 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
                   aesthetics: parsed.state_update.coverage.aesthetics,
                 };
               }
+              if (parsed.is_final) {
+                lastIsFinal = true;
+              }
             } catch {
               // skip unparseable lines
             }
@@ -201,6 +212,10 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
 
         setMessages((prev) => [...prev, { role: 'assistant', content: lastMessage }]);
         setCoverage(lastCoverage);
+
+        if (lastIsFinal) {
+          await refreshSessionState();
+        }
       } else {
         const data = await response.json();
         setMessages((prev) => [...prev, { role: 'assistant', content: data.message }]);
@@ -216,6 +231,63 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
     }
   }
 
+  async function refreshSessionState() {
+    try {
+      const res = await fetch(`/api/session/${id}`);
+      const data: SessionData = await res.json();
+      setSessionStatus(data.status);
+      setBriefMarkdown(data.briefMarkdown || '');
+    } catch {
+      // ignore refresh errors
+    }
+  }
+
+  async function handleApprove() {
+    if (!id || actionLoading) return;
+    setActionLoading(true);
+
+    try {
+      const res = await fetch(`/api/session/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'approve' }),
+      });
+
+      if (res.ok) {
+        setSessionStatus('approved');
+      }
+    } catch {
+      // ignore
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleRevise() {
+    if (!id || actionLoading) return;
+    setActionLoading(true);
+
+    try {
+      const res = await fetch(`/api/session/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'revise' }),
+      });
+
+      if (res.ok) {
+        setSessionStatus('in_discovery');
+        setBriefMarkdown('');
+      }
+    } catch {
+      // ignore
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  const isBriefReady = sessionStatus === 'brief_ready';
+  const isApproved = sessionStatus === 'approved';
+
   return (
     <div
       className={`max-w-2xl mx-auto p-4 flex flex-col h-screen ${isDragging ? 'bg-blue-50' : ''}`}
@@ -228,11 +300,67 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
       <ProgressBar coverage={coverage} />
 
       <div className="flex-1 overflow-y-auto space-y-4 mb-4">
-        {messages.length === 0 && (
+        {messages.length === 0 && !isBriefReady && !isApproved && (
           <p className="text-gray-400 text-center py-8">
             Type your first message to start the discovery session.
           </p>
         )}
+
+        {(isBriefReady || isApproved) && (
+          <div className="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
+            {isApproved ? (
+              <>
+                <h2 className="text-lg font-semibold text-green-700 mb-2">Brief Approved</h2>
+                <p className="text-gray-600 mb-4 text-sm">
+                  This brief has been approved and is read-only. The project is now closed.
+                </p>
+                <a
+                  href={`/api/session/${id}/brief`}
+                  download
+                  className="inline-block rounded-lg bg-green-600 px-4 py-2 text-white font-medium hover:bg-green-700"
+                >
+                  Download Brief
+                </a>
+                <div className="mt-6 border border-gray-100 rounded-lg p-4 bg-gray-50">
+                  <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono">
+                    {briefMarkdown}
+                  </pre>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="text-lg font-semibold text-gray-800 mb-2">
+                  Review Your Discovery Brief
+                </h2>
+                <p className="text-gray-600 mb-4 text-sm">
+                  Below is the structured brief generated from our conversation. Please review it carefully before approving.
+                </p>
+                <div className="mb-4 border border-gray-100 rounded-lg p-4 bg-gray-50 max-h-96 overflow-y-auto">
+                  <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono">
+                    {briefMarkdown}
+                  </pre>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleApprove}
+                    disabled={actionLoading}
+                    className="rounded-lg bg-green-600 px-6 py-2 text-white font-medium hover:bg-green-700 disabled:opacity-50"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={handleRevise}
+                    disabled={actionLoading}
+                    className="rounded-lg bg-gray-200 px-6 py-2 text-gray-700 font-medium hover:bg-gray-300 disabled:opacity-50"
+                  >
+                    Revise
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {messages.map((msg, index) => (
           <div
             key={index}
@@ -264,16 +392,18 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
         <div ref={messagesEndRef} />
       </div>
 
-      <ChatInput
-        value={input}
-        onChange={setInput}
-        onSend={sendMessage}
-        disabled={loading}
-        selectedFile={selectedFile}
-        onFileSelect={setSelectedFile}
-        onRemoveFile={removeFile}
-        fileInputRef={fileInputRef}
-      />
+      {!isApproved && (
+        <ChatInput
+          value={input}
+          onChange={setInput}
+          onSend={sendMessage}
+          disabled={loading}
+          selectedFile={selectedFile}
+          onFileSelect={setSelectedFile}
+          onRemoveFile={removeFile}
+          fileInputRef={fileInputRef}
+        />
+      )}
     </div>
   );
 }

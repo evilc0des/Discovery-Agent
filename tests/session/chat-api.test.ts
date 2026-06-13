@@ -206,6 +206,58 @@ describe('POST /api/session/[id]/chat', () => {
     expect(updated.recapHistory).toHaveLength(0);
   });
 
+  it('transitions status to brief_ready and generates briefMarkdown when is_final is true', async () => {
+    const mockCoverage = { product_context: 0.8, functional: 0.7, aesthetics: 0.9 };
+    vi.mocked(generateChatResponse).mockResolvedValue(
+      makeMockStreamResult(
+        'I believe we have enough to produce a structured brief. Are you ready to review it?',
+        { coverage: mockCoverage },
+        false,
+        true,
+      ),
+    );
+
+    const store = new SessionStore();
+    const session = store.createSession();
+    session.structuredBrief.product_context.problem_statement.value = 'A test problem';
+    store.updateSession(session);
+
+    const response = await callPostChat(session.sessionId, 'I think we are done');
+    expect(response.status).toBe(200);
+
+    const updated = store.getSession(session.sessionId);
+    expect(updated.status).toBe('brief_ready');
+    expect(updated.briefMarkdown).toBeTruthy();
+    expect(updated.briefMarkdown).toContain('# Structured Discovery Brief');
+    expect(updated.briefMarkdown).toContain('A test problem');
+  });
+
+  it('generates briefMarkdown with early stop warning when coverage is insufficient', async () => {
+    const mockCoverage = { product_context: 0.3, functional: 0.2, aesthetics: 0.1 };
+    vi.mocked(generateChatResponse).mockResolvedValue(
+      makeMockStreamResult(
+        'I will generate the brief now, but note some areas are incomplete.',
+        { coverage: mockCoverage },
+        false,
+        true,
+      ),
+    );
+
+    const store = new SessionStore();
+    const session = store.createSession();
+    session.coverage = { productContext: 0.3, functional: 0.2, aesthetics: 0.1 };
+    session.structuredBrief.product_context.problem_statement.value = 'A test problem';
+    store.updateSession(session);
+
+    const response = await callPostChat(session.sessionId, 'stop now please');
+    expect(response.status).toBe(200);
+
+    const updated = store.getSession(session.sessionId);
+    expect(updated.status).toBe('brief_ready');
+    expect(updated.briefMarkdown).toContain('**Warning**');
+    expect(updated.briefMarkdown).toContain('incomplete');
+  });
+
   it('falls back to text-only when LLM fails twice and returns JSON', async () => {
     vi.mocked(generateChatResponse).mockRejectedValue(new Error('LLM failure'));
     vi.mocked(generateFallbackResponse).mockResolvedValue(

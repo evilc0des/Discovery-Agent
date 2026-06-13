@@ -97,6 +97,8 @@ describe('GET /api/session', () => {
 
     expect(session).toHaveProperty('llmReasoning', '');
 
+    expect(session).toHaveProperty('briefMarkdown', '');
+
     expect(session).toHaveProperty('uploadedImages');
     expect(Array.isArray(session.uploadedImages)).toBe(true);
     expect(session.uploadedImages).toHaveLength(0);

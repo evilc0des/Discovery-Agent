@@ -77,6 +77,7 @@ export const sessionSchema = z.object({
   lastRecapTurn: z.number(),
   outOfScopeTopics: z.array(z.any()),
   llmReasoning: z.string(),
+  briefMarkdown: z.string(),
   uploadedImages: z.array(z.any()),
   fetchedWebsites: z.array(z.object({
     url: z.string(),

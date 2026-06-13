@@ -23,13 +23,13 @@ If the client explicitly says stop before coverage is sufficient, the system gen
 
 ## Acceptance criteria
 
-- [ ] When `is_final` is true, the UI prompts the client to review the brief.
-- [ ] The Markdown file is generated with all sections from the structured brief.
-- [ ] Client can click **Approve** to close the session, or **Revise** to return to the chat.
-- [ ] On approval, the session status changes to `approved` and the brief is read-only.
-- [ ] On revise, the LLM asks what needs to change.
-- [ ] If the client stops early, the brief includes a warning about incomplete areas.
-- [ ] The Markdown file is downloadable.
+- [x] When `is_final` is true, the UI prompts the client to review the brief.
+- [x] The Markdown file is generated with all sections from the structured brief.
+- [x] Client can click **Approve** to close the session, or **Revise** to return to the chat.
+- [x] On approval, the session status changes to `approved` and the brief is read-only.
+- [x] On revise, the LLM asks what needs to change.
+- [x] If the client stops early, the brief includes a warning about incomplete areas.
+- [x] The Markdown file is downloadable.
 
 ## Blocked by
 

@@ -56,6 +56,7 @@ export class SessionStore {
       lastRecapTurn: 0,
       outOfScopeTopics: [],
       llmReasoning: '',
+      briefMarkdown: '',
       uploadedImages: [],
       fetchedWebsites: [],
     });

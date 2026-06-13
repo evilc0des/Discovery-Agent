@@ -3,6 +3,7 @@ import { SessionStore } from '@/lib/session/store';
 import { generateChatResponse, generateFallbackResponse, type DiscoveryOutput } from '@/lib/llm/chat';
 import { extractText, isSupportedFile, isImageFile, storeImage } from '@/lib/files';
 import { extractUrls, fetchWebsiteContent } from '@/lib/website';
+import { generateBriefMarkdown } from '@/lib/brief-export';
 
 export async function POST(
   request: NextRequest,
@@ -215,6 +216,7 @@ export async function POST(
   const updatedSession = {
     ...session,
     chatHistory: [...session.chatHistory, userMessage, assistantMessage],
+    status: finalObject.is_final ? 'brief_ready' as const : session.status,
     coverage: {
       productContext: finalObject.state_update.coverage.product_context,
       functional: finalObject.state_update.coverage.functional,
@@ -246,6 +248,13 @@ export async function POST(
     recapHistory: finalObject.is_recap
       ? [...session.recapHistory, { turnNumber: assistantMessage.turnNumber, content: finalObject.message }]
       : session.recapHistory,
+    briefMarkdown: finalObject.is_final
+      ? generateBriefMarkdown(session.structuredBrief, {
+          earlyStop: session.coverage.productContext < 0.5 ||
+            session.coverage.functional < 0.5 ||
+            session.coverage.aesthetics < 0.5,
+        })
+      : session.briefMarkdown,
     uploadedImages: uploadedImageMeta
       ? [...session.uploadedImages, uploadedImageMeta]
       : session.uploadedImages,
