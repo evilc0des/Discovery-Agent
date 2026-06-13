@@ -20,12 +20,12 @@ The client can visit the link and start the conversation immediately. The sessio
 
 ## Acceptance criteria
 
-- [ ] `POST /api/projects` accepts multipart/form-data.
-- [ ] Optional fields: client_name, project_name, requirement_doc, initial_text.
-- [ ] If a document or text is provided, the LLM parses it synchronously and populates the initial structured brief.
-- [ ] Response includes projectId, sessionId, shareableUrl, and initialState.
-- [ ] The client visiting the shareable URL sees the pre-seeded content and can start the chat.
-- [ ] No authentication is required for the client-facing link.
+- [x] `POST /api/projects` accepts multipart/form-data.
+- [x] Optional fields: client_name, project_name, requirement_doc, initial_text.
+- [x] If a document or text is provided, the LLM parses it synchronously and populates the initial structured brief.
+- [x] Response includes projectId, sessionId, shareableUrl, and initialState.
+- [x] The client visiting the shareable URL sees the pre-seeded content and can start the chat.
+- [x] No authentication is required for the client-facing link.
 
 ## Blocked by
 
