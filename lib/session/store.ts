@@ -57,6 +57,7 @@ export class SessionStore {
       outOfScopeTopics: [],
       llmReasoning: '',
       uploadedImages: [],
+      fetchedWebsites: [],
     });
 
     const filePath = this.getSessionPath(sessionId);

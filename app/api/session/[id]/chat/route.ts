@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { SessionStore } from '@/lib/session/store';
 import { generateChatResponse, generateFallbackResponse } from '@/lib/llm/chat';
 import { extractText, isSupportedFile, isImageFile, storeImage } from '@/lib/files';
+import { extractUrls, fetchWebsiteContent } from '@/lib/website';
 
 export async function POST(
   request: NextRequest,
@@ -56,6 +57,38 @@ export async function POST(
     message = body.message || '';
   }
 
+  const fetchedWebsitesData: Array<{
+    url: string;
+    title: string;
+    metaDescription: string;
+    extractedText: string;
+    turnNumber: number;
+    fetchedAt: string;
+  }> = [];
+  let websiteContext = '';
+
+  if (message) {
+    const urls = extractUrls(message);
+    for (const url of urls) {
+      const content = await fetchWebsiteContent(url);
+      if (content) {
+        fetchedWebsitesData.push({
+          url,
+          title: content.title,
+          metaDescription: content.metaDescription,
+          extractedText: content.visibleText,
+          turnNumber,
+          fetchedAt: new Date().toISOString(),
+        });
+        websiteContext += `\n\n[Website: ${url}]\nTitle: ${content.title}\nDescription: ${content.metaDescription}\nContent: ${content.visibleText}\n[End of ${url}]`;
+      }
+    }
+  }
+
+  if (websiteContext) {
+    websiteContext = `\n\nThe client shared the following website links. Their content has been fetched and is provided below for context:${websiteContext}`;
+  }
+
   const userMessage = {
     turnNumber,
     role: 'user' as const,
@@ -78,9 +111,9 @@ export async function POST(
   if (uploadedImageMeta && imageBase64) {
     const parts: Array<{ type: string; text?: string; image?: string; mimeType?: string }> = [];
     if (message) {
-      parts.push({ type: 'text', text: `The client uploaded an image called "${uploadedFileName}" and said: ${message}` });
+      parts.push({ type: 'text', text: `The client uploaded an image called "${uploadedFileName}" and said: ${message}${websiteContext}` });
     } else {
-      parts.push({ type: 'text', text: `The client uploaded an image called "${uploadedFileName}". Please describe what you see and ask relevant discovery questions about it.` });
+      parts.push({ type: 'text', text: `The client uploaded an image called "${uploadedFileName}". Please describe what you see and ask relevant discovery questions about it.${websiteContext}` });
     }
     parts.push({ type: 'image', image: imageBase64, mimeType: uploadedImageMeta.mimeType });
     llmMessages.push({ role: 'user', content: parts });
@@ -88,22 +121,20 @@ export async function POST(
     const llmUserContent = uploadedFileName
       ? `The client uploaded a file called "${uploadedFileName}". Here is the content:\n\n---\n${extractedFileText}\n---` + (message ? `\n\nThe client also said: ${message}` : '')
       : message;
-    llmMessages.push({ role: 'user', content: llmUserContent });
+    llmMessages.push({ role: 'user', content: llmUserContent + websiteContext });
   }
 
   let llmResult;
   let fallback = false;
 
   try {
-    // First attempt
     llmResult = await generateChatResponse({
       sessionId: id,
       messages: llmMessages,
       currentBrief: session.structuredBrief,
       currentCoverage: session.coverage,
     });
-  } catch (firstError) {
-    // Retry once
+  } catch {
     try {
       llmResult = await generateChatResponse({
         sessionId: id,
@@ -111,8 +142,7 @@ export async function POST(
         currentBrief: session.structuredBrief,
         currentCoverage: session.coverage,
       });
-    } catch (secondError) {
-      // Fallback to text-only response
+    } catch {
       const fallbackMessage = await generateFallbackResponse({
         messages: llmMessages.map((m) => ({
           role: m.role,
@@ -160,6 +190,7 @@ export async function POST(
     uploadedImages: uploadedImageMeta
       ? [...session.uploadedImages, uploadedImageMeta]
       : session.uploadedImages,
+    fetchedWebsites: [...session.fetchedWebsites, ...fetchedWebsitesData],
     updatedAt: new Date().toISOString(),
   };
 

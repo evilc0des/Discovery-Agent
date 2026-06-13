@@ -78,6 +78,14 @@ export const sessionSchema = z.object({
   outOfScopeTopics: z.array(z.any()),
   llmReasoning: z.string(),
   uploadedImages: z.array(z.any()),
+  fetchedWebsites: z.array(z.object({
+    url: z.string(),
+    title: z.string(),
+    metaDescription: z.string(),
+    extractedText: z.string(),
+    turnNumber: z.number(),
+    fetchedAt: z.string().datetime(),
+  })),
 });
 
 export type Session = z.infer<typeof sessionSchema>;

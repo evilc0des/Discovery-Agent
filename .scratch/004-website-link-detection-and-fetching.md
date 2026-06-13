@@ -20,12 +20,12 @@ Update the session file to track which turns included website links and what was
 
 ## Acceptance criteria
 
-- [ ] URLs in client messages are detected by regex.
-- [ ] Backend fetches the page text (title, meta description, visible text) via HTTP.
-- [ ] Fetch failures are handled gracefully (e.g., timeout, 404) without breaking the chat.
-- [ ] Extracted content is appended to the user message before the LLM call.
-- [ ] The LLM can ask questions about the website's content.
-- [ ] The session file records the URL, the extracted text, and the turn number.
+- [x] URLs in client messages are detected by regex.
+- [x] Backend fetches the page text (title, meta description, visible text) via HTTP.
+- [x] Fetch failures are handled gracefully (e.g., timeout, 404) without breaking the chat.
+- [x] Extracted content is appended to the user message before the LLM call.
+- [x] The LLM can ask questions about the website's content.
+- [x] The session file records the URL, the extracted text, and the turn number.
 
 ## Blocked by
 
