@@ -22,14 +22,14 @@ If the LLM fails to produce valid structured JSON, the backend retries once. If 
 
 ## Acceptance criteria
 
-- [ ] Agent asks exactly one question per turn.
-- [ ] Agent detects contradictions between client statements and immediately challenges them politely.
-- [ ] Agent deflects out-of-scope topics (budget, timeline, etc.) with brief acknowledgment and logs them.
-- [ ] Agent recaps when a major topic is sufficiently explored (not on a fixed turn count).
-- [ ] Agent proposes the final brief when coverage is sufficient (guideline: ~70% across all domains).
-- [ ] Backend enforces a max of 7 turns without a recap.
-- [ ] LLM output is validated against the Zod schema.
-- [ ] Failure triggers one retry; second failure falls back to text-only response.
+- [x] Agent asks exactly one question per turn.
+- [x] Agent detects contradictions between client statements and immediately challenges them politely.
+- [x] Agent deflects out-of-scope topics (budget, timeline, etc.) with brief acknowledgment and logs them.
+- [x] Agent recaps when a major topic is sufficiently explored (not on a fixed turn count).
+- [x] Agent proposes the final brief when coverage is sufficient (guideline: ~70% across all domains).
+- [x] Backend enforces a max of 7 turns without a recap.
+- [x] LLM output is validated against the Zod schema.
+- [x] Failure triggers one retry; second failure falls back to text-only response.
 
 ## Blocked by
 
