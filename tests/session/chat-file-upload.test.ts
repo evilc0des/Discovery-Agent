@@ -12,6 +12,58 @@ vi.mock('@/lib/llm/chat', () => ({
   generateFallbackResponse: vi.fn(),
 }));
 
+function makeMockStreamResult(
+  message: string,
+  stateUpdate: {
+    coverage: { product_context: number; functional: number; aesthetics: number };
+    extracted?: Record<string, unknown>;
+    contradictions?: string[];
+    open_questions?: string[];
+    assumptions?: string[];
+    out_of_scope_topics?: Array<{ topic: string; turn_number: number; client_quote: string }>;
+  },
+  isRecap = false,
+  isFinal = false,
+) {
+  const finalObject = {
+    message,
+    state_update: {
+      coverage: stateUpdate.coverage,
+      extracted: stateUpdate.extracted ?? {},
+      contradictions: stateUpdate.contradictions ?? [],
+      open_questions: stateUpdate.open_questions ?? [],
+      assumptions: stateUpdate.assumptions ?? [],
+      out_of_scope_topics: stateUpdate.out_of_scope_topics ?? [],
+    },
+    reasoning: 'test reasoning',
+    is_recap: isRecap,
+    is_final: isFinal,
+  };
+
+  async function* generatePartials() {
+    yield { message: '', state_update: { coverage: stateUpdate.coverage } };
+    yield finalObject;
+  }
+
+  return {
+    partialObjectStream: generatePartials(),
+    object: Promise.resolve(finalObject),
+  };
+}
+
+async function readStreamLastObject(response: Response) {
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+  }
+  const lines = buffer.split('\n').filter((l) => l.trim());
+  return JSON.parse(lines[lines.length - 1]);
+}
+
 async function callPostChatWithFile(
   sessionId: string,
   file?: { buffer: Buffer; filename: string; mimeType: string },
@@ -66,20 +118,11 @@ describe('POST /api/session/[id]/chat - file uploads', () => {
   }
 
   it('uploads a .txt file, extracts text, and includes it in LLM context', async () => {
-    vi.mocked(generateChatResponse).mockResolvedValue({
-      message: 'I see you uploaded a file about fitness. What specific features do you need?',
-      stateUpdate: {
+    vi.mocked(generateChatResponse).mockResolvedValue(
+      makeMockStreamResult('I see you uploaded a file about fitness. What specific features do you need?', {
         coverage: { product_context: 0.1, functional: 0.0, aesthetics: 0.0 },
-        extracted: {},
-        contradictions: [],
-        open_questions: [],
-        assumptions: [],
-        out_of_scope_topics: [],
-      },
-      reasoning: 'Responding to file upload',
-      isRecap: false,
-      isFinal: false,
-    });
+      }),
+    );
 
     const store = new SessionStore();
     const session = store.createSession();
@@ -92,7 +135,7 @@ describe('POST /api/session/[id]/chat - file uploads', () => {
     });
 
     expect(response.status).toBe(200);
-    const body = await response.json();
+    const body = await readStreamLastObject(response);
     expect(body.message).toContain('fitness');
 
     const llmCall = vi.mocked(generateChatResponse).mock.calls[0][0];
@@ -108,20 +151,11 @@ describe('POST /api/session/[id]/chat - file uploads', () => {
   });
 
   it('stores uploaded image on disk and sends it to LLM as vision input', async () => {
-    vi.mocked(generateChatResponse).mockResolvedValue({
-      message: 'I can see the reference image you uploaded. What style aspects do you like about it?',
-      stateUpdate: {
+    vi.mocked(generateChatResponse).mockResolvedValue(
+      makeMockStreamResult('I can see the reference image you uploaded. What style aspects do you like about it?', {
         coverage: { product_context: 0.0, functional: 0.0, aesthetics: 0.1 },
-        extracted: {},
-        contradictions: [],
-        open_questions: [],
-        assumptions: [],
-        out_of_scope_topics: [],
-      },
-      reasoning: 'Asking about image reference',
-      isRecap: false,
-      isFinal: false,
-    });
+      }),
+    );
 
     const store = new SessionStore();
     const session = store.createSession();
@@ -133,7 +167,7 @@ describe('POST /api/session/[id]/chat - file uploads', () => {
     });
 
     expect(response.status).toBe(200);
-    const body = await response.json();
+    const body = await readStreamLastObject(response);
     expect(body.message).toContain('reference image');
 
     // Verify image stored on disk

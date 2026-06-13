@@ -21,6 +21,58 @@ vi.mock('@/lib/website', async () => {
 import { generateChatResponse } from '@/lib/llm/chat';
 import { fetchWebsiteContent } from '@/lib/website';
 
+function makeMockStreamResult(
+  message: string,
+  stateUpdate: {
+    coverage: { product_context: number; functional: number; aesthetics: number };
+    extracted?: Record<string, unknown>;
+    contradictions?: string[];
+    open_questions?: string[];
+    assumptions?: string[];
+    out_of_scope_topics?: Array<{ topic: string; turn_number: number; client_quote: string }>;
+  },
+  isRecap = false,
+  isFinal = false,
+) {
+  const finalObject = {
+    message,
+    state_update: {
+      coverage: stateUpdate.coverage,
+      extracted: stateUpdate.extracted ?? {},
+      contradictions: stateUpdate.contradictions ?? [],
+      open_questions: stateUpdate.open_questions ?? [],
+      assumptions: stateUpdate.assumptions ?? [],
+      out_of_scope_topics: stateUpdate.out_of_scope_topics ?? [],
+    },
+    reasoning: 'test reasoning',
+    is_recap: isRecap,
+    is_final: isFinal,
+  };
+
+  async function* generatePartials() {
+    yield { message: '', state_update: { coverage: stateUpdate.coverage } };
+    yield finalObject;
+  }
+
+  return {
+    partialObjectStream: generatePartials(),
+    object: Promise.resolve(finalObject),
+  };
+}
+
+async function readStreamLastObject(response: Response) {
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+  }
+  const lines = buffer.split('\n').filter((l) => l.trim());
+  return JSON.parse(lines[lines.length - 1]);
+}
+
 async function callPostChat(sessionId: string, message: string) {
   const { POST } = await import('@/app/api/session/[id]/chat/route');
   const { NextRequest } = await import('next/server');
@@ -49,20 +101,11 @@ describe('POST /api/session/[id]/chat with website links', () => {
   });
 
   it('detects URL in message, fetches website, and appends content to LLM message', async () => {
-    vi.mocked(generateChatResponse).mockResolvedValue({
-      message: 'I see you sent a fitness app website. Can you tell me more about your goals?',
-      stateUpdate: {
+    vi.mocked(generateChatResponse).mockResolvedValue(
+      makeMockStreamResult('I see you sent a fitness app website. Can you tell me more about your goals?', {
         coverage: { product_context: 0.1, functional: 0.0, aesthetics: 0.0 },
-        extracted: {},
-        contradictions: [],
-        open_questions: [],
-        assumptions: [],
-        out_of_scope_topics: [],
-      },
-      reasoning: 'Processing website content',
-      isRecap: false,
-      isFinal: false,
-    });
+      }),
+    );
 
     vi.mocked(fetchWebsiteContent).mockResolvedValue({
       title: 'FitLife - Premium Fitness Coaching',
@@ -76,7 +119,7 @@ describe('POST /api/session/[id]/chat with website links', () => {
     const response = await callPostChat(session.sessionId, 'Check out https://fitlife.example.com and tell me what you think');
     expect(response.status).toBe(200);
 
-    const body = await response.json();
+    const body = await readStreamLastObject(response);
     expect(body.message).toBe('I see you sent a fitness app website. Can you tell me more about your goals?');
 
     expect(generateChatResponse).toHaveBeenCalled();
@@ -95,20 +138,11 @@ describe('POST /api/session/[id]/chat with website links', () => {
   });
 
   it('sends message without website content when fetch fails', async () => {
-    vi.mocked(generateChatResponse).mockResolvedValue({
-      message: 'Sounds interesting, tell me more about your project.',
-      stateUpdate: {
+    vi.mocked(generateChatResponse).mockResolvedValue(
+      makeMockStreamResult('Sounds interesting, tell me more about your project.', {
         coverage: { product_context: 0.0, functional: 0.0, aesthetics: 0.0 },
-        extracted: {},
-        contradictions: [],
-        open_questions: [],
-        assumptions: [],
-        out_of_scope_topics: [],
-      },
-      reasoning: 'Starting discovery',
-      isRecap: false,
-      isFinal: false,
-    });
+      }),
+    );
 
     vi.mocked(fetchWebsiteContent).mockResolvedValue(null);
 
@@ -118,7 +152,7 @@ describe('POST /api/session/[id]/chat with website links', () => {
     const response = await callPostChat(session.sessionId, 'Look at https://broken.example.com');
     expect(response.status).toBe(200);
 
-    const body = await response.json();
+    const body = await readStreamLastObject(response);
     expect(body.message).toBe('Sounds interesting, tell me more about your project.');
 
     const callArgs = vi.mocked(generateChatResponse).mock.calls[0][0];
@@ -127,20 +161,11 @@ describe('POST /api/session/[id]/chat with website links', () => {
   });
 
   it('does not alter message when no URL is present', async () => {
-    vi.mocked(generateChatResponse).mockResolvedValue({
-      message: 'What problem does your product solve?',
-      stateUpdate: {
+    vi.mocked(generateChatResponse).mockResolvedValue(
+      makeMockStreamResult('What problem does your product solve?', {
         coverage: { product_context: 0.1, functional: 0.0, aesthetics: 0.0 },
-        extracted: {},
-        contradictions: [],
-        open_questions: [],
-        assumptions: [],
-        out_of_scope_topics: [],
-      },
-      reasoning: 'Starting product context discovery',
-      isRecap: false,
-      isFinal: false,
-    });
+      }),
+    );
 
     const store = new SessionStore();
     const session = store.createSession();
@@ -148,7 +173,7 @@ describe('POST /api/session/[id]/chat with website links', () => {
     const response = await callPostChat(session.sessionId, 'I want to build a fitness app');
     expect(response.status).toBe(200);
 
-    const body = await response.json();
+    const body = await readStreamLastObject(response);
     expect(body.message).toBe('What problem does your product solve?');
 
     const callArgs = vi.mocked(generateChatResponse).mock.calls[0][0];

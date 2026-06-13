@@ -1,9 +1,9 @@
-import { generateObject, generateText } from 'ai';
+import { streamObject, generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { computeCoverage } from '../coverage';
 
-const discoverySchema = z.object({
+export const discoverySchema = z.object({
   message: z.string(),
   state_update: z.object({
     coverage: z.object({
@@ -26,7 +26,9 @@ const discoverySchema = z.object({
   is_final: z.boolean(),
 });
 
-const systemPrompt = `You are a senior product discovery and design intake analyst.
+export type DiscoveryOutput = z.infer<typeof discoverySchema>;
+
+export const systemPrompt = `You are a senior product discovery and design intake analyst.
 
 Your task is to convert rough client input into a validated product discovery brief with a 20/40/40 balance:
 - 20% product context
@@ -86,7 +88,16 @@ AESTHETICS
 Rules:
 1. Ask one question at a time.
 2. Keep the conversation centered on the product.
-3. Don't ask technical questions. We only want to get to the user needs, desires, and constraints. The product team will translate those into technical requirements later. If the client starts giving technical details, acknowledge them and steer the conversation back to user needs and design constraints.
+3. Never ask technical or implementation questions. Focus exclusively on user needs, desires, workflows, and design constraints. The product team will handle all technical decisions later. Forbidden technical topics include (but are not limited to):
+   - Technology stack, programming languages, frameworks, libraries
+   - Database design, schemas, queries, data structures
+   - API design, endpoints, HTTP methods, protocols
+   - Server architecture, cloud infrastructure, deployment, hosting
+   - Authentication mechanisms, security protocols, encryption
+   - Performance optimization, caching, load balancing
+   - Code structure, design patterns, architecture patterns
+   - Any implementation detail that is not a user-facing behavior or design constraint
+   If the client volunteers technical details, acknowledge briefly and steer back to user needs and design constraints.
 4. If a client uses vague words like "modern", "premium", or "clean", ask for examples and observable traits.
 5. Convert subjective preferences into explicit UI/UX constraints.
 6. Separate must-have, nice-to-have, and must-avoid items.
@@ -97,69 +108,63 @@ Rules:
 11. Use coverage scores as a guide, not a command. If the client offers rich, high-signal material, explore it opportunistically. Return to the lowest-coverage domain within the next 1-2 turns.
 `;
 
+export function buildSystemPrompt(
+  turnsSinceLastRecap: number,
+  coverage: { productContext: number; functional: number; aesthetics: number },
+): string {
+  let prompt = `${systemPrompt}\n\nCurrent coverage scores: Product Context ${coverage.productContext}, Functional ${coverage.functional}, Aesthetics ${coverage.aesthetics}. Use these as a guide to choose the next question.`;
+
+  if (turnsSinceLastRecap >= 7) {
+    prompt += `\n\nIt has been ${turnsSinceLastRecap} turns since your last recap. When you reach a natural break in the current topic, provide a recap summarizing what has been covered so far. A recap should include knowns, assumptions, open questions, and any contradictions for the domains explored.`;
+  }
+
+  return prompt;
+}
+
 export async function generateChatResponse(args: {
   sessionId: string;
   messages: Array<{ role: string; content: string | Array<{ type: string; text?: string; image?: string; mimeType?: string }> }>;
   currentBrief: unknown;
   currentCoverage: unknown;
+  turnsSinceLastRecap?: number;
 }): Promise<{
-  message: string;
-  stateUpdate: {
-    coverage: {
-      product_context: number;
-      functional: number;
-      aesthetics: number;
-    };
-    extracted: Record<string, unknown>;
-    contradictions: string[];
-    open_questions: string[];
-    assumptions: string[];
-    out_of_scope_topics: Array<{ topic: string; turn_number: number; client_quote: string }>;
-  };
-  reasoning: string;
-  isRecap: boolean;
-  isFinal: boolean;
+  partialObjectStream: AsyncIterable<unknown>;
+  object: Promise<DiscoveryOutput>;
 }> {
   const coverage = computeCoverage(args.currentBrief as Parameters<typeof computeCoverage>[0]);
 
-  const { object } = await generateObject({
+  const system = buildSystemPrompt(args.turnsSinceLastRecap ?? 0, coverage);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const messages = args.messages.map((m): any => {
+    if (typeof m.content === 'string') {
+      return { role: m.role as 'user' | 'assistant', content: m.content };
+    }
+    return {
+      role: m.role as 'user' | 'assistant',
+      content: m.content.filter((p) => {
+        if (p.type === 'text') return true;
+        if (p.type === 'image' && p.image) return true;
+        return false;
+      }).map((p) => {
+        if (p.type === 'image') {
+          return { type: 'image' as const, image: p.image!, mimeType: p.mimeType };
+        }
+        return { type: 'text' as const, text: p.text! };
+      }),
+    };
+  });
+
+  const result = streamObject({
     model: openai('gpt-4o'),
     schema: discoverySchema,
-    system: `${systemPrompt}\n\nCurrent coverage scores: Product Context ${coverage.productContext}, Functional ${coverage.functional}, Aesthetics ${coverage.aesthetics}. Use these as a guide to choose the next question.`,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    messages: args.messages.map((m): any => {
-      if (typeof m.content === 'string') {
-        return { role: m.role as 'user' | 'assistant', content: m.content };
-      }
-      return {
-        role: m.role as 'user' | 'assistant',
-        content: m.content.filter((p) => {
-          if (p.type === 'text') return true;
-          if (p.type === 'image' && p.image) return true;
-          return false;
-        }).map((p) => {
-          if (p.type === 'image') {
-            return { type: 'image' as const, image: p.image!, mimeType: p.mimeType };
-          }
-          return { type: 'text' as const, text: p.text! };
-        }),
-      };
-    }),
+    system,
+    messages,
   });
 
   return {
-    message: object.message,
-    stateUpdate: {
-      coverage: object.state_update.coverage,
-      extracted: object.state_update.extracted,
-      contradictions: object.state_update.contradictions,
-      open_questions: object.state_update.open_questions,
-      assumptions: object.state_update.assumptions,
-      out_of_scope_topics: object.state_update.out_of_scope_topics,
-    },
-    reasoning: object.reasoning,
-    isRecap: object.is_recap,
-    isFinal: object.is_final,
+    partialObjectStream: result.partialObjectStream,
+    object: result.object,
   };
 }
 

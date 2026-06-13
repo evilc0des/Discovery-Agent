@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { SessionStore } from '@/lib/session/store';
-import { generateChatResponse, generateFallbackResponse } from '@/lib/llm/chat';
+import { generateChatResponse, generateFallbackResponse, type DiscoveryOutput } from '@/lib/llm/chat';
 import { extractText, isSupportedFile, isImageFile, storeImage } from '@/lib/files';
 import { extractUrls, fetchWebsiteContent } from '@/lib/website';
 
@@ -124,24 +124,33 @@ export async function POST(
     llmMessages.push({ role: 'user', content: llmUserContent + websiteContext });
   }
 
-  let llmResult;
+  const turnsSinceLastRecap = turnNumber - session.lastRecapTurn;
+
+  let partialObjectStream: AsyncIterable<unknown>;
+  let object: Promise<DiscoveryOutput>;
   let fallback = false;
 
   try {
-    llmResult = await generateChatResponse({
+    const result = await generateChatResponse({
       sessionId: id,
       messages: llmMessages,
       currentBrief: session.structuredBrief,
       currentCoverage: session.coverage,
+      turnsSinceLastRecap,
     });
+    partialObjectStream = result.partialObjectStream;
+    object = result.object;
   } catch {
     try {
-      llmResult = await generateChatResponse({
+      const result = await generateChatResponse({
         sessionId: id,
         messages: llmMessages,
         currentBrief: session.structuredBrief,
         currentCoverage: session.coverage,
+        turnsSinceLastRecap,
       });
+      partialObjectStream = result.partialObjectStream;
+      object = result.object;
     } catch {
       const fallbackMessage = await generateFallbackResponse({
         messages: llmMessages.map((m) => ({
@@ -150,31 +159,55 @@ export async function POST(
         })),
       });
       fallback = true;
-      llmResult = {
-        message: fallbackMessage,
-        stateUpdate: {
-          coverage: {
-            product_context: session.coverage.productContext,
-            functional: session.coverage.functional,
-            aesthetics: session.coverage.aesthetics,
-          },
-          extracted: {},
-          contradictions: [],
-          open_questions: [],
-          assumptions: [],
-          out_of_scope_topics: [],
-        },
-        reasoning: 'Fallback due to structured output failure',
-        isRecap: false,
-        isFinal: false,
+
+      const assistantMessage = {
+        turnNumber: turnNumber + 1,
+        role: 'assistant' as const,
+        content: fallbackMessage,
+        contentType: 'text' as const,
+        timestamp: new Date().toISOString(),
       };
+
+      const updatedSession = {
+        ...session,
+        chatHistory: [...session.chatHistory, userMessage, assistantMessage],
+        coverage: {
+          productContext: session.coverage.productContext,
+          functional: session.coverage.functional,
+          aesthetics: session.coverage.aesthetics,
+        },
+        uploadedImages: uploadedImageMeta
+          ? [...session.uploadedImages, uploadedImageMeta]
+          : session.uploadedImages,
+        fetchedWebsites: [...session.fetchedWebsites, ...fetchedWebsitesData],
+        updatedAt: new Date().toISOString(),
+      };
+
+      store.updateSession(updatedSession);
+
+      return new Response(
+        JSON.stringify({
+          message: fallbackMessage,
+          coverage: updatedSession.coverage,
+          turnNumber: assistantMessage.turnNumber,
+          fallback,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
     }
   }
+
+  const partials: unknown[] = [];
+  for await (const partial of partialObjectStream) {
+    partials.push(partial);
+  }
+
+  const finalObject = await object;
 
   const assistantMessage = {
     turnNumber: turnNumber + 1,
     role: 'assistant' as const,
-    content: llmResult.message,
+    content: finalObject.message,
     contentType: 'text' as const,
     timestamp: new Date().toISOString(),
   };
@@ -183,10 +216,36 @@ export async function POST(
     ...session,
     chatHistory: [...session.chatHistory, userMessage, assistantMessage],
     coverage: {
-      productContext: llmResult.stateUpdate.coverage.product_context,
-      functional: llmResult.stateUpdate.coverage.functional,
-      aesthetics: llmResult.stateUpdate.coverage.aesthetics,
+      productContext: finalObject.state_update.coverage.product_context,
+      functional: finalObject.state_update.coverage.functional,
+      aesthetics: finalObject.state_update.coverage.aesthetics,
     },
+    contradictions: [
+      ...session.contradictions,
+      ...finalObject.state_update.contradictions.filter(
+        (c: string) => !session.contradictions.includes(c)
+      ),
+    ],
+    assumptions: [
+      ...session.assumptions,
+      ...finalObject.state_update.assumptions.filter(
+        (a: string) => !session.assumptions.includes(a)
+      ),
+    ],
+    openQuestions: [
+      ...session.openQuestions,
+      ...finalObject.state_update.open_questions.filter(
+        (q: string) => !session.openQuestions.includes(q)
+      ),
+    ],
+    outOfScopeTopics: [
+      ...session.outOfScopeTopics,
+      ...finalObject.state_update.out_of_scope_topics,
+    ],
+    lastRecapTurn: finalObject.is_recap ? assistantMessage.turnNumber : session.lastRecapTurn,
+    recapHistory: finalObject.is_recap
+      ? [...session.recapHistory, { turnNumber: assistantMessage.turnNumber, content: finalObject.message }]
+      : session.recapHistory,
     uploadedImages: uploadedImageMeta
       ? [...session.uploadedImages, uploadedImageMeta]
       : session.uploadedImages,
@@ -196,13 +255,19 @@ export async function POST(
 
   store.updateSession(updatedSession);
 
-  return new Response(
-    JSON.stringify({
-      message: llmResult.message,
-      coverage: updatedSession.coverage,
-      turnNumber: assistantMessage.turnNumber,
-      fallback,
-    }),
-    { status: 200, headers: { 'Content-Type': 'application/json' } }
-  );
+  const encoder = new TextEncoder();
+  const body = new ReadableStream({
+    start(controller) {
+      for (const partial of partials) {
+        controller.enqueue(encoder.encode(JSON.stringify(partial) + '\n'));
+      }
+      controller.enqueue(encoder.encode(JSON.stringify(finalObject) + '\n'));
+      controller.close();
+    },
+  });
+
+  return new Response(body, {
+    status: 200,
+    headers: { 'Content-Type': 'application/x-ndjson' },
+  });
 }

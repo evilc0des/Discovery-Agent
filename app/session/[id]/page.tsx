@@ -153,9 +153,8 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
         body: formData,
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
+        const data = await response.json();
         setMessages((prev) => [
           ...prev,
           { role: 'assistant', content: data.error || 'Failed to upload file.' },
@@ -163,8 +162,50 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
         return;
       }
 
-      setMessages((prev) => [...prev, { role: 'assistant', content: data.message }]);
-      setCoverage(data.coverage);
+      const contentType = response.headers.get('content-type') || '';
+
+      if (contentType.includes('application/x-ndjson')) {
+        const reader = response.body!.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let lastMessage = '';
+        let lastCoverage = coverage;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const parsed = JSON.parse(line);
+              if (parsed.message) {
+                lastMessage = parsed.message;
+              }
+              if (parsed.state_update?.coverage) {
+                lastCoverage = {
+                  productContext: parsed.state_update.coverage.product_context,
+                  functional: parsed.state_update.coverage.functional,
+                  aesthetics: parsed.state_update.coverage.aesthetics,
+                };
+              }
+            } catch {
+              // skip unparseable lines
+            }
+          }
+        }
+
+        setMessages((prev) => [...prev, { role: 'assistant', content: lastMessage }]);
+        setCoverage(lastCoverage);
+      } else {
+        const data = await response.json();
+        setMessages((prev) => [...prev, { role: 'assistant', content: data.message }]);
+        setCoverage(data.coverage);
+      }
     } catch {
       setMessages((prev) => [
         ...prev,

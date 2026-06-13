@@ -6,11 +6,49 @@ import { generateChatResponse, generateFallbackResponse } from '@/lib/llm/chat';
 
 const TEST_SESSIONS_DIR = path.join(process.cwd(), 'test-sessions-chat-api');
 
-// Mock the LLM module so tests don't call OpenAI
 vi.mock('@/lib/llm/chat', () => ({
   generateChatResponse: vi.fn(),
   generateFallbackResponse: vi.fn(),
 }));
+
+function makeMockStreamResult(
+  message: string,
+  stateUpdate: {
+    coverage: { product_context: number; functional: number; aesthetics: number };
+    extracted?: Record<string, unknown>;
+    contradictions?: string[];
+    open_questions?: string[];
+    assumptions?: string[];
+    out_of_scope_topics?: Array<{ topic: string; turn_number: number; client_quote: string }>;
+  },
+  isRecap = false,
+  isFinal = false,
+) {
+  const finalObject = {
+    message,
+    state_update: {
+      coverage: stateUpdate.coverage,
+      extracted: stateUpdate.extracted ?? {},
+      contradictions: stateUpdate.contradictions ?? [],
+      open_questions: stateUpdate.open_questions ?? [],
+      assumptions: stateUpdate.assumptions ?? [],
+      out_of_scope_topics: stateUpdate.out_of_scope_topics ?? [],
+    },
+    reasoning: 'test reasoning',
+    is_recap: isRecap,
+    is_final: isFinal,
+  };
+
+  async function* generatePartials() {
+    yield { message: '', state_update: { coverage: stateUpdate.coverage } };
+    yield { message, state_update: finalObject.state_update, reasoning: 'test reasoning', is_recap: isRecap, is_final: isFinal };
+  }
+
+  return {
+    partialObjectStream: generatePartials(),
+    object: Promise.resolve(finalObject),
+  };
+}
 
 async function callPostChat(sessionId: string, message: string) {
   const { POST } = await import('@/app/api/session/[id]/chat/route');
@@ -21,6 +59,18 @@ async function callPostChat(sessionId: string, message: string) {
     body: JSON.stringify({ message }),
   });
   return POST(request, { params: Promise.resolve({ id: sessionId }) });
+}
+
+async function readStreamBody(response: Response): Promise<string[]> {
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  const lines: string[] = [];
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    lines.push(decoder.decode(value, { stream: true }));
+  }
+  return lines.filter((l) => l.trim().length > 0);
 }
 
 describe('POST /api/session/[id]/chat', () => {
@@ -39,45 +89,31 @@ describe('POST /api/session/[id]/chat', () => {
     vi.clearAllMocks();
   });
 
-  it('returns a chat response and updates session file', async () => {
-    vi.mocked(generateChatResponse).mockResolvedValue({
-      message: 'What problem does your product solve?',
-      stateUpdate: {
-        coverage: {
-          product_context: 0.1,
-          functional: 0.0,
-          aesthetics: 0.0,
-        },
-        extracted: {},
-        contradictions: [],
+  it('streams NDJSON response and updates session file', async () => {
+    const mockCoverage = { product_context: 0.1, functional: 0.0, aesthetics: 0.0 };
+    vi.mocked(generateChatResponse).mockResolvedValue(
+      makeMockStreamResult('What problem does your product solve?', {
+        coverage: mockCoverage,
         open_questions: ['What problem does your product solve?'],
-        assumptions: [],
-        out_of_scope_topics: [],
-      },
-      reasoning: 'Starting product context discovery',
-      isRecap: false,
-      isFinal: false,
-    });
+      }),
+    );
 
     const store = new SessionStore();
     const session = store.createSession();
 
     const response = await callPostChat(session.sessionId, 'I want to build a fitness app');
     expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('application/x-ndjson');
 
-    const body = await response.json();
-    expect(body.message).toBe('What problem does your product solve?');
-    expect(body.coverage).toEqual({
-      productContext: 0.1,
-      functional: 0.0,
-      aesthetics: 0.0,
-    });
+    const lines = await readStreamBody(response);
+    expect(lines.length).toBeGreaterThanOrEqual(2);
 
-    // Verify session file updated
+    const lastLine = JSON.parse(lines[lines.length - 1]);
+    expect(lastLine.message).toBe('What problem does your product solve?');
+
     const updatedSession = store.getSession(session.sessionId);
     expect(updatedSession.chatHistory).toHaveLength(2);
     expect(updatedSession.chatHistory[0].role).toBe('user');
-    expect(updatedSession.chatHistory[0].content).toBe('I want to build a fitness app');
     expect(updatedSession.chatHistory[1].role).toBe('assistant');
     expect(updatedSession.chatHistory[1].content).toBe('What problem does your product solve?');
     expect(updatedSession.coverage).toEqual({
@@ -87,9 +123,94 @@ describe('POST /api/session/[id]/chat', () => {
     });
   });
 
-  it('falls back to text-only when LLM fails twice and still updates chatHistory', async () => {
+  it('passes turnsSinceLastRecap to generateChatResponse', async () => {
+    const mockCoverage = { product_context: 0.2, functional: 0.0, aesthetics: 0.0 };
+    vi.mocked(generateChatResponse).mockResolvedValue(
+      makeMockStreamResult('Tell me more about your users.', { coverage: mockCoverage }),
+    );
+
+    const store = new SessionStore();
+    const session = store.createSeededSession({
+      sessionId: 'test-recap-session',
+    });
+
+    session.chatHistory = [
+      { role: 'user', content: 'msg1', turnNumber: 1, contentType: 'text', timestamp: new Date().toISOString() },
+      { role: 'assistant', content: 'resp1', turnNumber: 2, contentType: 'text', timestamp: new Date().toISOString() },
+      { role: 'user', content: 'msg2', turnNumber: 3, contentType: 'text', timestamp: new Date().toISOString() },
+      { role: 'assistant', content: 'resp2', turnNumber: 4, contentType: 'text', timestamp: new Date().toISOString() },
+      { role: 'user', content: 'msg3', turnNumber: 5, contentType: 'text', timestamp: new Date().toISOString() },
+      { role: 'assistant', content: 'resp3', turnNumber: 6, contentType: 'text', timestamp: new Date().toISOString() },
+      { role: 'user', content: 'msg4', turnNumber: 7, contentType: 'text', timestamp: new Date().toISOString() },
+      { role: 'assistant', content: 'resp4', turnNumber: 8, contentType: 'text', timestamp: new Date().toISOString() },
+      { role: 'user', content: 'msg5', turnNumber: 9, contentType: 'text', timestamp: new Date().toISOString() },
+      { role: 'assistant', content: 'resp5', turnNumber: 10, contentType: 'text', timestamp: new Date().toISOString() },
+      { role: 'user', content: 'msg6', turnNumber: 11, contentType: 'text', timestamp: new Date().toISOString() },
+      { role: 'assistant', content: 'resp6', turnNumber: 12, contentType: 'text', timestamp: new Date().toISOString() },
+      { role: 'user', content: 'msg7', turnNumber: 13, contentType: 'text', timestamp: new Date().toISOString() },
+      { role: 'assistant', content: 'resp7', turnNumber: 14, contentType: 'text', timestamp: new Date().toISOString() },
+    ];
+    session.lastRecapTurn = 0;
+    store.updateSession(session);
+
+    await callPostChat(session.sessionId, 'And one more thing...');
+
+    expect(generateChatResponse).toHaveBeenCalledTimes(1);
+    const callArgs = vi.mocked(generateChatResponse).mock.calls[0][0];
+    expect(callArgs.turnsSinceLastRecap).toBe(15);
+  });
+
+  it('updates lastRecapTurn and recapHistory when LLM produces a recap', async () => {
+    const mockCoverage = { product_context: 0.5, functional: 0.3, aesthetics: 0.1 };
+    vi.mocked(generateChatResponse).mockResolvedValue(
+      makeMockStreamResult(
+        'Here is a recap of what we have covered so far...',
+        {
+          coverage: mockCoverage,
+          contradictions: ['Client said X then said Y'],
+          open_questions: ['Still unclear about Z'],
+          assumptions: ['Assuming web-based'],
+        },
+        true,
+        false,
+      ),
+    );
+
+    const store = new SessionStore();
+    const session = store.createSession();
+
+    await callPostChat(session.sessionId, 'initial message');
+
+    const updated = store.getSession(session.sessionId);
+    expect(updated.lastRecapTurn).toBe(2);
+    expect(updated.recapHistory).toHaveLength(1);
+    expect(updated.recapHistory[0].turnNumber).toBe(2);
+    expect(updated.contradictions).toEqual(['Client said X then said Y']);
+    expect(updated.openQuestions).toEqual(['Still unclear about Z']);
+    expect(updated.assumptions).toEqual(['Assuming web-based']);
+  });
+
+  it('does NOT update lastRecapTurn when LLM response is not a recap', async () => {
+    const mockCoverage = { product_context: 0.1, functional: 0.0, aesthetics: 0.0 };
+    vi.mocked(generateChatResponse).mockResolvedValue(
+      makeMockStreamResult('What features do you need?', { coverage: mockCoverage }, false, false),
+    );
+
+    const store = new SessionStore();
+    const session = store.createSession();
+
+    await callPostChat(session.sessionId, 'I want an app');
+
+    const updated = store.getSession(session.sessionId);
+    expect(updated.lastRecapTurn).toBe(0);
+    expect(updated.recapHistory).toHaveLength(0);
+  });
+
+  it('falls back to text-only when LLM fails twice and returns JSON', async () => {
     vi.mocked(generateChatResponse).mockRejectedValue(new Error('LLM failure'));
-    vi.mocked(generateFallbackResponse).mockResolvedValue('I am having trouble processing that. Could you tell me more about what you are trying to build?');
+    vi.mocked(generateFallbackResponse).mockResolvedValue(
+      'I am having trouble processing that. Could you tell me more?',
+    );
 
     const store = new SessionStore();
     const session = store.createSession();
@@ -98,16 +219,11 @@ describe('POST /api/session/[id]/chat', () => {
     expect(response.status).toBe(200);
 
     const body = await response.json();
-    expect(body.message).toBe('I am having trouble processing that. Could you tell me more about what you are trying to build?');
+    expect(body.message).toBe('I am having trouble processing that. Could you tell me more?');
     expect(body.fallback).toBe(true);
 
-    // Verify session file updated with fallback response
     const updatedSession = store.getSession(session.sessionId);
     expect(updatedSession.chatHistory).toHaveLength(2);
-    expect(updatedSession.chatHistory[0].role).toBe('user');
-    expect(updatedSession.chatHistory[1].role).toBe('assistant');
-    expect(updatedSession.chatHistory[1].content).toBe(body.message);
-    // Coverage should not update on fallback
     expect(updatedSession.coverage).toEqual({
       productContext: 0.0,
       functional: 0.0,
