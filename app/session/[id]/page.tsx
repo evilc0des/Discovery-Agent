@@ -59,6 +59,8 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
   const [id, setId] = useState<string>('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [coverage, setCoverage] = useState<Coverage>({
     productContext: 0,
     functional: 0,
@@ -66,6 +68,7 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
   });
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     params.then(({ id: sessionId }) => {
@@ -91,22 +94,81 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      setSelectedFile(files[0]);
+    }
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      setSelectedFile(files[0]);
+    }
+  }
+
+  function removeFile() {
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }
+
   async function sendMessage() {
-    if (!input.trim() || !id || loading) return;
+    if ((!input.trim() && !selectedFile) || !id || loading) return;
 
     const userMessage = input.trim();
+    const file = selectedFile;
+
     setInput('');
-    setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+
+    const previewContent = file
+      ? `[${file.name}]`
+      : userMessage;
+    setMessages((prev) => [...prev, { role: 'user', content: previewContent }]);
     setLoading(true);
 
     try {
+      const formData = new FormData();
+      if (userMessage) formData.append('message', userMessage);
+      if (file) formData.append('file', file);
+
       const response = await fetch(`/api/session/${id}/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage }),
+        body: formData,
       });
 
       const data = await response.json();
+
+      if (!response.ok) {
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: data.error || 'Failed to upload file.' },
+        ]);
+        return;
+      }
+
       setMessages((prev) => [...prev, { role: 'assistant', content: data.message }]);
       setCoverage(data.coverage);
     } catch {
@@ -120,7 +182,12 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-4 flex flex-col h-screen">
+    <div
+      className={`max-w-2xl mx-auto p-4 flex flex-col h-screen ${isDragging ? 'bg-blue-50' : ''}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <h1 className="text-xl font-semibold mb-4">Discovery Session</h1>
 
       <ProgressBar coverage={coverage} />
@@ -154,22 +221,62 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
             </div>
           </div>
         )}
+        {isDragging && (
+          <div className="border-2 border-dashed border-blue-400 rounded-lg p-8 text-center text-blue-500">
+            Drop your file here to upload
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
+      {selectedFile && (
+        <div className="flex items-center gap-2 mb-2 px-1">
+          <div className="flex-1 flex items-center gap-2 bg-blue-50 rounded-lg px-3 py-1.5 text-sm">
+            <span className="text-blue-600">{String.fromCodePoint(0x1F4CE)}</span>
+            <span className="text-gray-700 truncate">{selectedFile.name}</span>
+            <span className="text-gray-400 text-xs">
+              ({Math.round(selectedFile.size / 1024)} KB)
+            </span>
+          </div>
+          <button
+            onClick={removeFile}
+            className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+            aria-label="Remove file"
+          >
+            {String.fromCodePoint(0x00D7)}
+          </button>
+        </div>
+      )}
+
       <div className="flex gap-2">
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileSelect}
+          className="hidden"
+          accept=".pdf,.txt,.md,.png,.jpg,.jpeg,.gif"
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={loading}
+          className="rounded-lg border border-gray-300 px-3 py-2 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label="Attach file"
+          title="Attach a file (drag & drop also supported)"
+        >
+          {String.fromCodePoint(0x1F4CE)}
+        </button>
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-          placeholder="Type your message..."
+          placeholder={selectedFile ? `Add a message about ${selectedFile.name}...` : 'Type your message...'}
           className="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           disabled={loading}
         />
         <button
           onClick={sendMessage}
-          disabled={loading || !input.trim()}
+          disabled={loading || (!input.trim() && !selectedFile)}
           className="rounded-lg bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Send

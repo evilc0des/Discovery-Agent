@@ -20,14 +20,14 @@ Update the session file to include uploaded image metadata and the extracted tex
 
 ## Acceptance criteria
 
-- [ ] Client can upload a file via drag-and-drop or file picker.
-- [ ] Supported formats: PDF, TXT, MD, PNG, JPG, GIF.
-- [ ] Unsupported formats show a clear error message.
-- [ ] Uploaded images are stored in `uploads/{sessionId}/` and referenced in the session file.
-- [ ] For images, the LLM (GPT-4o) receives the image as a vision input and can ask questions about it.
-- [ ] For documents, the extracted text is sent to the LLM as context.
-- [ ] The session file is updated with upload metadata and the agent's follow-up questions.
-- [ ] Document parsing is synchronous (no background jobs).
+- [x] Client can upload a file via drag-and-drop or file picker.
+- [x] Supported formats: PDF, TXT, MD, PNG, JPG, GIF.
+- [x] Unsupported formats show a clear error message.
+- [x] Uploaded images are stored in `uploads/{sessionId}/` and referenced in the session file.
+- [x] For images, the LLM (GPT-4o) receives the image as a vision input and can ask questions about it.
+- [x] For documents, the extracted text is sent to the LLM as context.
+- [x] The session file is updated with upload metadata and the agent's follow-up questions.
+- [x] Document parsing is synchronous (no background jobs).
 
 ## Blocked by
 

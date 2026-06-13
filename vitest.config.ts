@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    exclude: ['**/.next/**', '**/node_modules/**'],
   },
   resolve: {
     tsconfigPaths: true,

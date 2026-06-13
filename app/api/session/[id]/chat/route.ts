@@ -1,13 +1,13 @@
 import { NextRequest } from 'next/server';
 import { SessionStore } from '@/lib/session/store';
 import { generateChatResponse, generateFallbackResponse } from '@/lib/llm/chat';
+import { extractText, isSupportedFile, isImageFile, storeImage } from '@/lib/files';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const { message } = await request.json();
 
   const store = new SessionStore();
   const session = store.getSession(id);
@@ -15,20 +15,81 @@ export async function POST(
   const now = new Date().toISOString();
   const turnNumber = session.chatHistory.length + 1;
 
-  // Add user message
+  const contentType = request.headers.get('content-type') || '';
+  let message = '';
+  let extractedFileText: string | null = null;
+  let uploadedFileName: string | null = null;
+  let uploadedImageMeta: {
+    id: string;
+    originalName: string;
+    storedPath: string;
+    mimeType: string;
+    uploadedAt: string;
+  } | null = null;
+  let imageBase64: string | null = null;
+
+  if (contentType.includes('multipart/form-data')) {
+    const formData = await request.formData();
+    message = (formData.get('message') as string) || '';
+    const file = formData.get('file') as File | null;
+
+    if (file && file.size > 0) {
+      uploadedFileName = file.name;
+      const buffer = Buffer.from(await file.arrayBuffer());
+
+      if (!isSupportedFile(file.type)) {
+        return new Response(
+          JSON.stringify({ error: `Unsupported file type: ${uploadedFileName}` }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (isImageFile(file.type)) {
+        imageBase64 = buffer.toString('base64');
+        uploadedImageMeta = await storeImage(buffer, id, file.name, file.type);
+      } else {
+        extractedFileText = await extractText(buffer, file.name, file.type);
+      }
+    }
+  } else {
+    const body = await request.json();
+    message = body.message || '';
+  }
+
   const userMessage = {
     turnNumber,
     role: 'user' as const,
-    content: message,
-    contentType: 'text' as const,
+    content: uploadedFileName
+      ? uploadedImageMeta
+        ? `[Image uploaded: ${uploadedFileName}]` + (message ? `\n\nUser message: ${message}` : '')
+        : `[File uploaded: ${uploadedFileName}]\n\n${extractedFileText}` + (message ? `\n\nUser message: ${message}` : '')
+      : message,
+    contentType: uploadedFileName
+      ? uploadedImageMeta ? 'image_upload' as const : 'file_upload' as const
+      : 'text' as const,
     timestamp: now,
   };
 
-  const llmMessages = session.chatHistory.map((h) => ({
+  const llmMessages: Array<{ role: string; content: string | Array<{ type: string; text?: string; image?: string; mimeType?: string }> }> = session.chatHistory.map((h) => ({
     role: h.role,
-    content: h.content,
+    content: h.content as string,
   }));
-  llmMessages.push({ role: 'user', content: message });
+
+  if (uploadedImageMeta && imageBase64) {
+    const parts: Array<{ type: string; text?: string; image?: string; mimeType?: string }> = [];
+    if (message) {
+      parts.push({ type: 'text', text: `The client uploaded an image called "${uploadedFileName}" and said: ${message}` });
+    } else {
+      parts.push({ type: 'text', text: `The client uploaded an image called "${uploadedFileName}". Please describe what you see and ask relevant discovery questions about it.` });
+    }
+    parts.push({ type: 'image', image: imageBase64, mimeType: uploadedImageMeta.mimeType });
+    llmMessages.push({ role: 'user', content: parts });
+  } else {
+    const llmUserContent = uploadedFileName
+      ? `The client uploaded a file called "${uploadedFileName}". Here is the content:\n\n---\n${extractedFileText}\n---` + (message ? `\n\nThe client also said: ${message}` : '')
+      : message;
+    llmMessages.push({ role: 'user', content: llmUserContent });
+  }
 
   let llmResult;
   let fallback = false;
@@ -53,7 +114,10 @@ export async function POST(
     } catch (secondError) {
       // Fallback to text-only response
       const fallbackMessage = await generateFallbackResponse({
-        messages: llmMessages,
+        messages: llmMessages.map((m) => ({
+          role: m.role,
+          content: typeof m.content === 'string' ? m.content : m.content.find(p => p.type === 'text')?.text || '[image]',
+        })),
       });
       fallback = true;
       llmResult = {
@@ -93,6 +157,9 @@ export async function POST(
       functional: llmResult.stateUpdate.coverage.functional,
       aesthetics: llmResult.stateUpdate.coverage.aesthetics,
     },
+    uploadedImages: uploadedImageMeta
+      ? [...session.uploadedImages, uploadedImageMeta]
+      : session.uploadedImages,
     updatedAt: new Date().toISOString(),
   };
 

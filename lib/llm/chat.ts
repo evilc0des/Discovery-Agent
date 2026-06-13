@@ -99,7 +99,7 @@ Rules:
 
 export async function generateChatResponse(args: {
   sessionId: string;
-  messages: Array<{ role: string; content: string }>;
+  messages: Array<{ role: string; content: string | Array<{ type: string; text?: string; image?: string; mimeType?: string }> }>;
   currentBrief: unknown;
   currentCoverage: unknown;
 }): Promise<{
@@ -126,10 +126,25 @@ export async function generateChatResponse(args: {
     model: openai('gpt-4o'),
     schema: discoverySchema,
     system: `${systemPrompt}\n\nCurrent coverage scores: Product Context ${coverage.productContext}, Functional ${coverage.functional}, Aesthetics ${coverage.aesthetics}. Use these as a guide to choose the next question.`,
-    messages: args.messages.map((m) => ({
-      role: m.role as 'user' | 'assistant',
-      content: m.content,
-    })),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    messages: args.messages.map((m): any => {
+      if (typeof m.content === 'string') {
+        return { role: m.role as 'user' | 'assistant', content: m.content };
+      }
+      return {
+        role: m.role as 'user' | 'assistant',
+        content: m.content.filter((p) => {
+          if (p.type === 'text') return true;
+          if (p.type === 'image' && p.image) return true;
+          return false;
+        }).map((p) => {
+          if (p.type === 'image') {
+            return { type: 'image' as const, image: p.image!, mimeType: p.mimeType };
+          }
+          return { type: 'text' as const, text: p.text! };
+        }),
+      };
+    }),
   });
 
   return {
