@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { sessionSchema, createDefaultStructuredBrief, type Session } from './schema';
+import { computeCoverage } from '../coverage';
 
 export class SessionStore {
   constructor(private dir: string = process.env.SESSIONS_DIR || 'sessions') {}
@@ -17,11 +18,22 @@ export class SessionStore {
   }
 
   createSession(): Session {
+    return this.createSeededSession();
+  }
+
+  createSeededSession(opts?: {
+    clientName?: string;
+    projectName?: string;
+    structuredBrief?: ReturnType<typeof createDefaultStructuredBrief>;
+    sessionId?: string;
+    shareableUrl?: string;
+  }): Session {
     this.ensureDirectory();
 
-    const sessionId = randomUUID();
+    const sessionId = opts?.sessionId || randomUUID();
     const projectId = randomUUID();
     const now = new Date().toISOString();
+    const brief = opts?.structuredBrief || createDefaultStructuredBrief();
 
     const session = sessionSchema.parse({
       sessionId,
@@ -29,18 +41,14 @@ export class SessionStore {
       status: 'in_discovery',
       createdAt: now,
       updatedAt: now,
-      shareableUrl: '',
+      shareableUrl: opts?.shareableUrl || '',
       metadata: {
-        clientName: '',
-        projectName: '',
+        clientName: opts?.clientName || '',
+        projectName: opts?.projectName || '',
       },
       chatHistory: [],
-      structuredBrief: createDefaultStructuredBrief(),
-      coverage: {
-        productContext: 0.0,
-        functional: 0.0,
-        aesthetics: 0.0,
-      },
+      structuredBrief: brief,
+      coverage: computeCoverage(brief),
       contradictions: [],
       assumptions: [],
       openQuestions: [],
