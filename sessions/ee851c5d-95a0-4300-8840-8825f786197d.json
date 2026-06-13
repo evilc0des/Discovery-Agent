@@ -1,0 +1,84 @@
+{
+  "sessionId": "ee851c5d-95a0-4300-8840-8825f786197d",
+  "projectId": "49935d4c-47fa-484c-8bc4-3431803ff021",
+  "status": "in_discovery",
+  "createdAt": "2026-06-13T05:20:49.774Z",
+  "updatedAt": "2026-06-13T05:20:49.774Z",
+  "shareableUrl": "",
+  "metadata": {
+    "clientName": "",
+    "projectName": ""
+  },
+  "chatHistory": [],
+  "structuredBrief": {
+    "product_context": {
+      "problem_statement": {
+        "value": "",
+        "citations": []
+      },
+      "target_audience": [],
+      "user_needs": [],
+      "use_context": {
+        "value": "",
+        "citations": []
+      },
+      "success_definition": {
+        "value": "",
+        "citations": []
+      },
+      "product_boundaries": [],
+      "must_have_goals": [],
+      "nice_to_have_goals": []
+    },
+    "functional": {
+      "user_segments": [],
+      "jobs_to_be_done": [],
+      "current_workflows": [],
+      "desired_workflows": [],
+      "features": [],
+      "system_behaviors": [],
+      "integrations": [],
+      "data_entities": [],
+      "roles_permissions": [],
+      "edge_cases": [],
+      "acceptance_criteria": []
+    },
+    "aesthetics": {
+      "brand_personality": [],
+      "tone_of_voice": {
+        "value": "",
+        "citations": []
+      },
+      "desired_emotions": [],
+      "visual_style_keywords": [],
+      "reference_products": [],
+      "liked_patterns": [],
+      "disliked_patterns": [],
+      "color_preferences": [],
+      "color_avoidances": [],
+      "typography_direction": [],
+      "imagery_direction": [],
+      "interaction_principles": [],
+      "accessibility_expectations": [],
+      "ui_constraints": []
+    },
+    "assumptions": [],
+    "risks_to_product_fit": [],
+    "open_questions": [],
+    "out_of_scope_topics": [],
+    "approval_status": "draft"
+  },
+  "coverage": {
+    "productContext": 0,
+    "functional": 0,
+    "aesthetics": 0
+  },
+  "contradictions": [],
+  "assumptions": [],
+  "openQuestions": [],
+  "recapHistory": [],
+  "lastRecapTurn": 0,
+  "outOfScopeTopics": [],
+  "llmReasoning": "",
+  "uploadedImages": []
+}

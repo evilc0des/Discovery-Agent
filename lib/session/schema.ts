@@ -1,0 +1,132 @@
+import { z } from 'zod';
+
+const citationField = z.object({
+  value: z.string(),
+  citations: z.array(z.string()),
+});
+
+export const structuredBriefSchema = z.object({
+  product_context: z.object({
+    problem_statement: citationField,
+    target_audience: z.array(z.string()),
+    user_needs: z.array(z.string()),
+    use_context: citationField,
+    success_definition: citationField,
+    product_boundaries: z.array(z.string()),
+    must_have_goals: z.array(z.string()),
+    nice_to_have_goals: z.array(z.string()),
+  }),
+  functional: z.object({
+    user_segments: z.array(z.string()),
+    jobs_to_be_done: z.array(z.string()),
+    current_workflows: z.array(z.string()),
+    desired_workflows: z.array(z.string()),
+    features: z.array(z.string()),
+    system_behaviors: z.array(z.string()),
+    integrations: z.array(z.string()),
+    data_entities: z.array(z.string()),
+    roles_permissions: z.array(z.string()),
+    edge_cases: z.array(z.string()),
+    acceptance_criteria: z.array(z.string()),
+  }),
+  aesthetics: z.object({
+    brand_personality: z.array(z.string()),
+    tone_of_voice: citationField,
+    desired_emotions: z.array(z.string()),
+    visual_style_keywords: z.array(z.string()),
+    reference_products: z.array(z.string()),
+    liked_patterns: z.array(z.string()),
+    disliked_patterns: z.array(z.string()),
+    color_preferences: z.array(z.string()),
+    color_avoidances: z.array(z.string()),
+    typography_direction: z.array(z.string()),
+    imagery_direction: z.array(z.string()),
+    interaction_principles: z.array(z.string()),
+    accessibility_expectations: z.array(z.string()),
+    ui_constraints: z.array(z.string()),
+  }),
+  assumptions: z.array(z.string()),
+  risks_to_product_fit: z.array(z.string()),
+  open_questions: z.array(z.string()),
+  out_of_scope_topics: z.array(z.string()),
+  approval_status: z.enum(['draft', 'reviewed', 'approved']),
+});
+
+export const sessionSchema = z.object({
+  sessionId: z.string(),
+  projectId: z.string(),
+  status: z.enum(['in_discovery', 'brief_ready', 'approved']),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  shareableUrl: z.string(),
+  metadata: z.object({
+    clientName: z.string(),
+    projectName: z.string(),
+  }),
+  chatHistory: z.array(z.any()),
+  structuredBrief: structuredBriefSchema,
+  coverage: z.object({
+    productContext: z.number(),
+    functional: z.number(),
+    aesthetics: z.number(),
+  }),
+  contradictions: z.array(z.any()),
+  assumptions: z.array(z.any()),
+  openQuestions: z.array(z.any()),
+  recapHistory: z.array(z.any()),
+  lastRecapTurn: z.number(),
+  outOfScopeTopics: z.array(z.any()),
+  llmReasoning: z.string(),
+  uploadedImages: z.array(z.any()),
+});
+
+export type Session = z.infer<typeof sessionSchema>;
+
+export function createDefaultStructuredBrief(): z.infer<typeof structuredBriefSchema> {
+  return {
+    product_context: {
+      problem_statement: { value: '', citations: [] },
+      target_audience: [],
+      user_needs: [],
+      use_context: { value: '', citations: [] },
+      success_definition: { value: '', citations: [] },
+      product_boundaries: [],
+      must_have_goals: [],
+      nice_to_have_goals: [],
+    },
+    functional: {
+      user_segments: [],
+      jobs_to_be_done: [],
+      current_workflows: [],
+      desired_workflows: [],
+      features: [],
+      system_behaviors: [],
+      integrations: [],
+      data_entities: [],
+      roles_permissions: [],
+      edge_cases: [],
+      acceptance_criteria: [],
+    },
+    aesthetics: {
+      brand_personality: [],
+      tone_of_voice: { value: '', citations: [] },
+      desired_emotions: [],
+      visual_style_keywords: [],
+      reference_products: [],
+      liked_patterns: [],
+      disliked_patterns: [],
+      color_preferences: [],
+      color_avoidances: [],
+      typography_direction: [],
+      imagery_direction: [],
+      interaction_principles: [],
+      accessibility_expectations: [],
+      ui_constraints: [],
+    },
+    assumptions: [],
+    risks_to_product_fit: [],
+    open_questions: [],
+    out_of_scope_topics: [],
+    approval_status: 'draft',
+  };
+}
