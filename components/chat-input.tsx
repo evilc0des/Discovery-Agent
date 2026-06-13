@@ -2,6 +2,7 @@
 
 import { useRef, useEffect } from 'react';
 import { useSpeechRecognition } from '@/lib/hooks/use-speech-recognition';
+import { MicrophoneIcon, PaperAirplaneIcon, PaperClipIcon } from "@heroicons/react/16/solid";
 
 interface ChatInputProps {
   value: string;
@@ -86,7 +87,7 @@ export function ChatInput({
               aria-label="Attach file"
               title="Attach a file (drag & drop also supported)"
             >
-              {String.fromCodePoint(0x1F4CE)}
+              <PaperClipIcon className="h-6 w-6 text-gray-500" />
             </button>
           </>
         )}
@@ -94,17 +95,15 @@ export function ChatInput({
         <button
           onClick={() => (isListening ? stopListening() : startListening())}
           disabled={disabled || !isSupported}
-          className={`rounded-lg border px-3 py-2 transition-colors ${
-            !isSupported ? 'invisible' : ''
-          } ${
-            isListening
+          className={`rounded-lg border px-3 py-2 transition-colors ${!isSupported ? 'invisible' : ''
+            } ${isListening
               ? 'border-red-300 bg-red-50 text-red-600 hover:bg-red-100'
               : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-          } disabled:opacity-50 disabled:cursor-not-allowed`}
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
           aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
           title={isListening ? 'Stop listening' : 'Start voice input'}
         >
-          {String.fromCodePoint(0x1F3A4)}
+          <MicrophoneIcon className={`h-6 w-6 ${isListening ? 'text-red-600' : 'text-gray-500'}`} />
         </button>
 
         <input
@@ -121,9 +120,9 @@ export function ChatInput({
         <button
           onClick={onSend}
           disabled={disabled || (!value.trim() && !selectedFile)}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="rounded-lg text-blue-600 px-4 py-2 font-medium hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Send
+          <PaperAirplaneIcon className="h-8 w-8" />
         </button>
       </div>
     </div>

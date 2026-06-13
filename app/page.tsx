@@ -1,63 +1,56 @@
-import Image from "next/image";
+import Image from 'next/image';
+import Link from 'next/link';
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="flex flex-col flex-1 items-center justify-center bg-gray-50 dark:bg-zinc-950 font-sans">
+      <main className="flex flex-col items-center gap-8 text-center max-w-lg mx-auto px-6 py-20">
+        <div className="w-16 h-16 rounded-2xl bg-gray-900 flex items-center justify-center shadow-lg">
+          <Image src="/appato-logo.png" alt="Discovery Agent Icon" className="w-8 h-8" width={32} height={32} />
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-zinc-50">
+            Discovery Agent
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-lg leading-relaxed text-gray-500 dark:text-zinc-400">
+            AI-powered client requirement intake. A structured discovery session
+            that captures your project&apos;s product context, functional needs,
+            and aesthetic direction — then generates a comprehensive brief.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
+          <Link
+            href="/session"
+            className="flex-1 rounded-xl bg-gray-900 px-6 py-3 text-white font-medium text-sm hover:bg-gray-800 transition-colors text-center"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            Start a Discovery Session
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-lg mt-4">
+          <div className="rounded-lg border border-gray-200 bg-white dark:bg-zinc-900 dark:border-zinc-800 p-4 text-left">
+            <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center mb-2">
+              <span className="text-blue-600 dark:text-blue-400 text-sm font-bold">1</span>
+            </div>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">Product Context</h3>
+            <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">Problem statement, audience, goals</p>
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-white dark:bg-zinc-900 dark:border-zinc-800 p-4 text-left">
+            <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center mb-2">
+              <span className="text-green-600 dark:text-green-400 text-sm font-bold">2</span>
+            </div>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">Functional</h3>
+            <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">Features, workflows, integrations</p>
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-white dark:bg-zinc-900 dark:border-zinc-800 p-4 text-left">
+            <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center mb-2">
+              <span className="text-purple-600 dark:text-purple-400 text-sm font-bold">3</span>
+            </div>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">Aesthetics</h3>
+            <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">Visual style, tone, interactions</p>
+          </div>
         </div>
       </main>
     </div>

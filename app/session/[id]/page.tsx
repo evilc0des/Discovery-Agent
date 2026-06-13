@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { ChatInput } from '@/components/chat-input';
+import { SessionSidebar } from '@/components/session-sidebar';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -14,6 +15,11 @@ interface Coverage {
   aesthetics: number;
 }
 
+interface SessionMetadata {
+  clientName: string;
+  projectName: string;
+}
+
 interface SessionData {
   sessionId: string;
   status: string;
@@ -23,39 +29,7 @@ interface SessionData {
   }>;
   coverage: Coverage;
   briefMarkdown: string;
-}
-
-function ProgressBar({ coverage }: { coverage: Coverage }) {
-  const segments = [
-    { label: 'Product Context', value: coverage.productContext, color: 'bg-blue-500' },
-    { label: 'Functional', value: coverage.functional, color: 'bg-green-500' },
-    { label: 'Aesthetics', value: coverage.aesthetics, color: 'bg-purple-500' },
-  ];
-
-  return (
-    <div className="mb-6">
-      <div className="flex h-4 rounded-full overflow-hidden bg-gray-200">
-        {segments.map((segment) => (
-          <div
-            key={segment.label}
-            className={`${segment.color} transition-all duration-500`}
-            style={{ width: `${segment.value * 100}%` }}
-            title={`${segment.label}: ${Math.round(segment.value * 100)}%`}
-          />
-        ))}
-      </div>
-      <div className="flex justify-between mt-2 text-sm text-gray-600">
-        {segments.map((segment) => (
-          <div key={segment.label} className="flex items-center gap-1">
-            <div className={`w-2 h-2 rounded-full ${segment.color}`} />
-            <span>
-              {segment.label}: {Math.round(segment.value * 100)}%
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  metadata: SessionMetadata;
 }
 
 export default function SessionChatPage({ params }: { params: Promise<{ id: string }> }) {
@@ -71,8 +45,13 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
   });
   const [sessionStatus, setSessionStatus] = useState<string>('in_discovery');
   const [briefMarkdown, setBriefMarkdown] = useState<string>('');
+  const [metadata, setMetadata] = useState<SessionMetadata>({
+    clientName: '',
+    projectName: '',
+  });
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -91,6 +70,7 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
           setCoverage(data.coverage);
           setSessionStatus(data.status);
           setBriefMarkdown(data.briefMarkdown || '');
+          setMetadata(data.metadata || { clientName: '', projectName: '' });
         })
         .catch(() => {
           // Session not found, will start fresh
@@ -288,122 +268,200 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
   const isBriefReady = sessionStatus === 'brief_ready';
   const isApproved = sessionStatus === 'approved';
 
+  const sidebarContent = (
+    <SessionSidebar
+      projectName={metadata.projectName}
+      clientName={metadata.clientName}
+      coverage={coverage}
+      status={sessionStatus}
+    />
+  );
+
   return (
-    <div
-      className={`max-w-2xl mx-auto p-4 flex flex-col h-screen ${isDragging ? 'bg-blue-50' : ''}`}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
-      <h1 className="text-xl font-semibold mb-4">Discovery Session</h1>
-
-      <ProgressBar coverage={coverage} />
-
-      <div className="flex-1 overflow-y-auto space-y-4 mb-4">
-        {messages.length === 0 && !isBriefReady && !isApproved && (
-          <p className="text-gray-400 text-center py-8">
-            Type your first message to start the discovery session.
-          </p>
-        )}
-
-        {(isBriefReady || isApproved) && (
-          <div className="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
-            {isApproved ? (
-              <>
-                <h2 className="text-lg font-semibold text-green-700 mb-2">Brief Approved</h2>
-                <p className="text-gray-600 mb-4 text-sm">
-                  This brief has been approved and is read-only. The project is now closed.
-                </p>
-                <a
-                  href={`/api/session/${id}/brief`}
-                  download
-                  className="inline-block rounded-lg bg-green-600 px-4 py-2 text-white font-medium hover:bg-green-700"
-                >
-                  Download Brief
-                </a>
-                <div className="mt-6 border border-gray-100 rounded-lg p-4 bg-gray-50">
-                  <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono">
-                    {briefMarkdown}
-                  </pre>
-                </div>
-              </>
-            ) : (
-              <>
-                <h2 className="text-lg font-semibold text-gray-800 mb-2">
-                  Review Your Discovery Brief
-                </h2>
-                <p className="text-gray-600 mb-4 text-sm">
-                  Below is the structured brief generated from our conversation. Please review it carefully before approving.
-                </p>
-                <div className="mb-4 border border-gray-100 rounded-lg p-4 bg-gray-50 max-h-96 overflow-y-auto">
-                  <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono">
-                    {briefMarkdown}
-                  </pre>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleApprove}
-                    disabled={actionLoading}
-                    className="rounded-lg bg-green-600 px-6 py-2 text-white font-medium hover:bg-green-700 disabled:opacity-50"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    onClick={handleRevise}
-                    disabled={actionLoading}
-                    className="rounded-lg bg-gray-200 px-6 py-2 text-gray-700 font-medium hover:bg-gray-300 disabled:opacity-50"
-                  >
-                    Revise
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                msg.role === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-900'
-              }`}
-            >
-              {msg.content}
-            </div>
-          </div>
-        ))}
-        {loading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-100 rounded-lg px-4 py-2 text-gray-500">
-              Thinking...
-            </div>
-          </div>
-        )}
-        {isDragging && (
-          <div className="border-2 border-dashed border-blue-400 rounded-lg p-8 text-center text-blue-500">
-            Drop your file here to upload
-          </div>
-        )}
-        <div ref={messagesEndRef} />
+    <div className="flex flex-col lg:flex-row h-screen bg-gray-50">
+      {/* Desktop sidebar */}
+      <div className="hidden lg:flex lg:flex-col lg:w-80 lg:flex-shrink-0 lg:border-r lg:border-gray-200 lg:bg-white lg:overflow-y-auto">
+        {sidebarContent}
       </div>
 
-      {!isApproved && (
-        <ChatInput
-          value={input}
-          onChange={setInput}
-          onSend={sendMessage}
-          disabled={loading}
-          selectedFile={selectedFile}
-          onFileSelect={setSelectedFile}
-          onRemoveFile={removeFile}
-          fileInputRef={fileInputRef}
-        />
-      )}
+      {/* Mobile header */}
+      <div className="lg:hidden flex-shrink-0 border-b border-gray-200 bg-white">
+        <div className="px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 rounded-md bg-gray-900 flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-xs font-bold">D</span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-sm font-semibold text-gray-900 truncate">
+                {metadata.projectName || 'New Project'}
+              </h1>
+            </div>
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 flex-shrink-0"
+              aria-label="Toggle session details"
+            >
+              <svg
+                className={`w-5 h-5 transition-transform ${sidebarOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+          {!sidebarOpen && (
+            <div className="mt-2.5 flex items-center gap-2">
+              <div className="flex-1 flex h-1.5 rounded-full overflow-hidden bg-gray-100">
+                <div
+                  className="bg-blue-500 transition-all duration-500"
+                  style={{ width: `${Math.max(coverage.productContext * 100, 2)}%` }}
+                />
+                <div
+                  className="bg-green-500 transition-all duration-500"
+                  style={{ width: `${Math.max(coverage.functional * 100, 2)}%` }}
+                />
+                <div
+                  className="bg-purple-500 transition-all duration-500"
+                  style={{ width: `${Math.max(coverage.aesthetics * 100, 2)}%` }}
+                />
+              </div>
+              <span className="text-xs text-gray-400 tabular-nums flex-shrink-0">
+                {Math.round(((coverage.productContext + coverage.functional + coverage.aesthetics) / 3) * 100)}%
+              </span>
+            </div>
+          )}
+        </div>
+        {sidebarOpen && (
+          <div className="border-t border-gray-100 bg-white max-h-96 overflow-y-auto">
+            {sidebarContent}
+          </div>
+        )}
+      </div>
+
+      {/* Chat area */}
+      <div
+        className={`flex-1 flex flex-col min-w-0 ${
+          isDragging ? 'bg-blue-50' : ''
+        }`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        <div className="flex-1 overflow-y-auto px-4 lg:px-6 py-4 space-y-4">
+          {messages.length === 0 && !isBriefReady && !isApproved && (
+            <div className="text-center py-12">
+              <p className="text-gray-400 text-lg">
+                Type your first message to start the discovery session.
+              </p>
+              <p className="text-gray-300 text-sm mt-2">
+                I&apos;ll ask about your product context, functional needs, and aesthetic preferences.
+              </p>
+            </div>
+          )}
+
+          {(isBriefReady || isApproved) && (
+            <div className="max-w-2xl mx-auto border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
+              {isApproved ? (
+                <>
+                  <h2 className="text-lg font-semibold text-green-700 mb-2">Brief Approved</h2>
+                  <p className="text-gray-600 mb-4 text-sm">
+                    This brief has been approved and is read-only. The project is now closed.
+                  </p>
+                  <a
+                    href={`/api/session/${id}/brief`}
+                    download
+                    className="inline-block rounded-lg bg-green-600 px-4 py-2 text-white font-medium hover:bg-green-700"
+                  >
+                    Download Brief
+                  </a>
+                  <div className="mt-6 border border-gray-100 rounded-lg p-4 bg-gray-50">
+                    <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono">
+                      {briefMarkdown}
+                    </pre>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-lg font-semibold text-gray-800 mb-2">
+                    Review Your Discovery Brief
+                  </h2>
+                  <p className="text-gray-600 mb-4 text-sm">
+                    Below is the structured brief generated from our conversation. Please review it carefully before approving.
+                  </p>
+                  <div className="mb-4 border border-gray-100 rounded-lg p-4 bg-gray-50 max-h-96 overflow-y-auto">
+                    <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono">
+                      {briefMarkdown}
+                    </pre>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleApprove}
+                      disabled={actionLoading}
+                      className="rounded-lg bg-green-600 px-6 py-2 text-white font-medium hover:bg-green-700 disabled:opacity-50"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={handleRevise}
+                      disabled={actionLoading}
+                      className="rounded-lg bg-gray-200 px-6 py-2 text-gray-700 font-medium hover:bg-gray-300 disabled:opacity-50"
+                    >
+                      Revise
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {messages.map((msg, index) => (
+            <div
+              key={index}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-[80%] lg:max-w-[70%] rounded-lg px-4 py-2 ${
+                  msg.role === 'user'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white border border-gray-200 text-gray-900'
+                }`}
+              >
+                {msg.content}
+              </div>
+            </div>
+          ))}
+          {loading && (
+            <div className="flex justify-start">
+              <div className="bg-white border border-gray-200 rounded-lg px-4 py-2 text-gray-500">
+                Thinking...
+              </div>
+            </div>
+          )}
+          {isDragging && (
+            <div className="border-2 border-dashed border-blue-400 rounded-lg p-8 text-center text-blue-500">
+              Drop your file here to upload
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {!isApproved && (
+          <div className="flex-shrink-0 px-4 lg:px-6 py-3 border-t border-gray-200 bg-white">
+            <ChatInput
+              value={input}
+              onChange={setInput}
+              onSend={sendMessage}
+              disabled={loading}
+              selectedFile={selectedFile}
+              onFileSelect={setSelectedFile}
+              onRemoveFile={removeFile}
+              fileInputRef={fileInputRef}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
