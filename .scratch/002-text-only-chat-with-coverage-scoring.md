@@ -1,7 +1,7 @@
 ---
 number: 002
 title: Text-only chat with coverage scoring
-status: open
+status: closed
 labels: [ready-for-agent]
 ---
 
@@ -20,13 +20,13 @@ If the LLM fails to produce valid structured JSON, the backend retries once. If 
 
 ## Acceptance criteria
 
-- [ ] Client can type a message and press Send.
-- [ ] Agent responds with a natural language question.
-- [ ] The session file is updated with the new turn in chatHistory.
-- [ ] The progress bar updates based on the backend-computed coverage scores.
-- [ ] Structured output is validated against a Zod schema before saving.
-- [ ] LLM failure triggers one retry; second failure falls back to text-only response.
-- [ ] The chat history persists across page refreshes (read from session file).
+- [x] Client can type a message and press Send.
+- [x] Agent responds with a natural language question.
+- [x] The session file is updated with the new turn in chatHistory.
+- [x] The progress bar updates based on the backend-computed coverage scores.
+- [x] Structured output is validated against a Zod schema before saving.
+- [x] LLM failure triggers one retry; second failure falls back to text-only response.
+- [x] The chat history persists across page refreshes (read from session file).
 
 ## Blocked by
 

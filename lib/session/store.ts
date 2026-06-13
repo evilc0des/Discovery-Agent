@@ -56,4 +56,19 @@ export class SessionStore {
 
     return session;
   }
+
+  getSession(sessionId: string): Session {
+    const filePath = this.getSessionPath(sessionId);
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`Session not found: ${sessionId}`);
+    }
+    const content = fs.readFileSync(filePath, 'utf-8');
+    return sessionSchema.parse(JSON.parse(content));
+  }
+
+  updateSession(session: Session): void {
+    const filePath = this.getSessionPath(session.sessionId);
+    const validated = sessionSchema.parse(session);
+    fs.writeFileSync(filePath, JSON.stringify(validated, null, 2));
+  }
 }

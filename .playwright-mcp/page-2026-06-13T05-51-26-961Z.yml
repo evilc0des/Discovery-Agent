@@ -1,0 +1,19 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - heading "Discovery Session" [level=1] [ref=e3]
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - 'generic "Product Context: 0%"'
+        - 'generic "Functional: 0%"'
+        - 'generic "Aesthetics: 0%"'
+      - generic [ref=e6]:
+        - generic [ref=e9]: "Product Context: 0%"
+        - generic [ref=e12]: "Functional: 0%"
+        - generic [ref=e15]: "Aesthetics: 0%"
+    - paragraph [ref=e17]: Type your first message to start the discovery session.
+    - generic [ref=e18]:
+      - textbox "Type your message..." [ref=e19]
+      - button "Send" [disabled] [ref=e20]
+  - button "Open Next.js Dev Tools" [ref=e26] [cursor=pointer]:
+    - img [ref=e27]
+  - alert [ref=e30]
