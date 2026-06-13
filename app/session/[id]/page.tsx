@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { ChatInput } from '@/components/chat-input';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -117,13 +118,6 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
     }
   }
 
-  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      setSelectedFile(files[0]);
-    }
-  }
-
   function removeFile() {
     setSelectedFile(null);
     if (fileInputRef.current) {
@@ -229,59 +223,16 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
         <div ref={messagesEndRef} />
       </div>
 
-      {selectedFile && (
-        <div className="flex items-center gap-2 mb-2 px-1">
-          <div className="flex-1 flex items-center gap-2 bg-blue-50 rounded-lg px-3 py-1.5 text-sm">
-            <span className="text-blue-600">{String.fromCodePoint(0x1F4CE)}</span>
-            <span className="text-gray-700 truncate">{selectedFile.name}</span>
-            <span className="text-gray-400 text-xs">
-              ({Math.round(selectedFile.size / 1024)} KB)
-            </span>
-          </div>
-          <button
-            onClick={removeFile}
-            className="text-gray-400 hover:text-gray-600 text-lg leading-none"
-            aria-label="Remove file"
-          >
-            {String.fromCodePoint(0x00D7)}
-          </button>
-        </div>
-      )}
-
-      <div className="flex gap-2">
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileSelect}
-          className="hidden"
-          accept=".pdf,.txt,.md,.png,.jpg,.jpeg,.gif"
-        />
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={loading}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          aria-label="Attach file"
-          title="Attach a file (drag & drop also supported)"
-        >
-          {String.fromCodePoint(0x1F4CE)}
-        </button>
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-          placeholder={selectedFile ? `Add a message about ${selectedFile.name}...` : 'Type your message...'}
-          className="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          disabled={loading}
-        />
-        <button
-          onClick={sendMessage}
-          disabled={loading || (!input.trim() && !selectedFile)}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Send
-        </button>
-      </div>
+      <ChatInput
+        value={input}
+        onChange={setInput}
+        onSend={sendMessage}
+        disabled={loading}
+        selectedFile={selectedFile}
+        onFileSelect={setSelectedFile}
+        onRemoveFile={removeFile}
+        fileInputRef={fileInputRef}
+      />
     </div>
   );
 }

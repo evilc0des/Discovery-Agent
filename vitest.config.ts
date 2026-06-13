@@ -5,6 +5,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     exclude: ['**/.next/**', '**/node_modules/**'],
+    setupFiles: ['./tests/setup.ts'],
   },
   resolve: {
     tsconfigPaths: true,

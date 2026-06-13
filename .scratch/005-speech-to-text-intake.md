@@ -18,12 +18,12 @@ If the browser does not support the Web Speech API, the mic button is hidden. No
 
 ## Acceptance criteria
 
-- [ ] A mic button is visible in the chat input.
-- [ ] Clicking the mic activates the browser's Web Speech API.
-- [ ] The transcript streams into the text input box.
-- [ ] The user can edit the transcript before sending.
-- [ ] The mic button is hidden if the browser does not support Web Speech API.
-- [ ] The message is sent as normal text (no backend changes needed).
+- [x] A mic button is visible in the chat input.
+- [x] Clicking the mic activates the browser's Web Speech API.
+- [x] The transcript streams into the text input box.
+- [x] The user can edit the transcript before sending.
+- [x] The mic button is hidden if the browser does not support Web Speech API.
+- [x] The message is sent as normal text (no backend changes needed).
 
 ## Blocked by
 
