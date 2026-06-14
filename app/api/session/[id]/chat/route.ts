@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import { SessionStore } from '@/lib/session/store';
 import { generateChatResponse, generateFallbackResponse, type DiscoveryOutput } from '@/lib/llm/chat';
-import { extractText, isSupportedFile, isImageFile, storeImage } from '@/lib/files';
+import { extractText, isSupportedFile, isImageFile } from '@/lib/files';
+import { createImageStorage } from '@/lib/storage/image-storage';
 import { extractUrls, fetchWebsiteContent } from '@/lib/website';
 import { generateBriefMarkdown } from '@/lib/brief-export';
 
@@ -48,7 +49,8 @@ export async function POST(
 
       if (isImageFile(file.type)) {
         imageBase64 = buffer.toString('base64');
-        uploadedImageMeta = await storeImage(buffer, id, file.name, file.type);
+        const imageStorage = createImageStorage();
+        uploadedImageMeta = await imageStorage.storeImage(buffer, id, file.name, file.type);
       } else {
         extractedFileText = await extractText(buffer, file.name, file.type);
       }
