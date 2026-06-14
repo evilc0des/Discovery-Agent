@@ -4,6 +4,7 @@ import { SessionStore } from '@/lib/session/store';
 import { createDefaultStructuredBrief } from '@/lib/session/schema';
 import { parseIntakeText } from '@/lib/llm/parse';
 import { mergeParsedIntake } from '@/lib/session/merge-intake';
+import { extractText } from '@/lib/files';
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
@@ -18,7 +19,8 @@ export async function POST(request: NextRequest) {
   let intakeText: string | null = null;
 
   if (requirementDoc && requirementDoc.size > 0) {
-    intakeText = await requirementDoc.text();
+    const buffer = Buffer.from(await requirementDoc.arrayBuffer());
+    intakeText = await extractText(buffer, requirementDoc.name, requirementDoc.type);
   } else if (initialText && initialText.trim().length > 0) {
     intakeText = initialText;
   }
