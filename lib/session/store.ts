@@ -1,20 +1,23 @@
 import { randomUUID } from 'crypto';
-import fs from 'fs';
-import path from 'path';
 import { sessionSchema, createDefaultStructuredBrief, type Session } from './schema';
 import { computeCoverage } from '../coverage';
+import { type StorageBackend, FileSessionBackend } from './backend';
+
+function createBackend(dir: string): StorageBackend {
+  const backend = process.env.STORAGE_BACKEND || 'file';
+  switch (backend) {
+    case 'file':
+      return new FileSessionBackend(dir);
+    default:
+      throw new Error(`Unknown STORAGE_BACKEND: ${backend}`);
+  }
+}
 
 export class SessionStore {
-  constructor(private dir: string = process.env.SESSIONS_DIR || 'sessions') {}
+  private backend: StorageBackend;
 
-  private ensureDirectory(): void {
-    if (!fs.existsSync(this.dir)) {
-      fs.mkdirSync(this.dir, { recursive: true });
-    }
-  }
-
-  private getSessionPath(sessionId: string): string {
-    return path.join(this.dir, `${sessionId}.json`);
+  constructor(private dir: string = process.env.SESSIONS_DIR || 'sessions') {
+    this.backend = createBackend(this.dir);
   }
 
   createSession(): Session {
@@ -28,8 +31,6 @@ export class SessionStore {
     sessionId?: string;
     shareableUrl?: string;
   }): Session {
-    this.ensureDirectory();
-
     const sessionId = opts?.sessionId || randomUUID();
     const projectId = randomUUID();
     const now = new Date().toISOString();
@@ -61,24 +62,15 @@ export class SessionStore {
       fetchedWebsites: [],
     });
 
-    const filePath = this.getSessionPath(sessionId);
-    fs.writeFileSync(filePath, JSON.stringify(session, null, 2));
-
+    this.backend.createSession(session);
     return session;
   }
 
   getSession(sessionId: string): Session {
-    const filePath = this.getSessionPath(sessionId);
-    if (!fs.existsSync(filePath)) {
-      throw new Error(`Session not found: ${sessionId}`);
-    }
-    const content = fs.readFileSync(filePath, 'utf-8');
-    return sessionSchema.parse(JSON.parse(content));
+    return this.backend.getSession(sessionId);
   }
 
   updateSession(session: Session): void {
-    const filePath = this.getSessionPath(session.sessionId);
-    const validated = sessionSchema.parse(session);
-    fs.writeFileSync(filePath, JSON.stringify(validated, null, 2));
+    this.backend.updateSession(session);
   }
 }

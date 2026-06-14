@@ -19,12 +19,12 @@ Also set `STORAGE_BACKEND=file` in `vitest.config.ts` so tests explicitly target
 
 ## Acceptance criteria
 
-- [ ] `StorageBackend` interface exists in `lib/session/backend.ts` with `createSession`, `getSession`, `updateSession` signatures.
-- [ ] `FileSessionBackend` in the same file contains the existing `fs` logic (ensure-directory, read/write JSON, Zod validation).
-- [ ] `SessionStore` in `lib/session/store.ts` is rewritten as a factory: reads `STORAGE_BACKEND` env, returns `FileSessionBackend` (and throws a clear error for unknown values).
-- [ ] Public API of `SessionStore` (`createSession`, `createSeededSession`, `getSession`, `updateSession`) is unchanged — all 5 API route files compile without modification.
-- [ ] `vitest.config.ts` has `STORAGE_BACKEND=file` in the test env definition.
-- [ ] All 14 existing tests pass (`npx vitest run`).
+- [x] `StorageBackend` interface exists in `lib/session/backend.ts` with `createSession`, `getSession`, `updateSession` signatures.
+- [x] `FileSessionBackend` in the same file contains the existing `fs` logic (ensure-directory, read/write JSON, Zod validation).
+- [x] `SessionStore` in `lib/session/store.ts` is rewritten as a factory: reads `STORAGE_BACKEND` env, returns `FileSessionBackend` (and throws a clear error for unknown values).
+- [x] Public API of `SessionStore` (`createSession`, `createSeededSession`, `getSession`, `updateSession`) is unchanged — all 5 API route files compile without modification.
+- [x] `vitest.config.ts` has `STORAGE_BACKEND=file` in the test env definition.
+- [x] All 14 existing tests pass (`npx vitest run`).
 
 ## Blocked by
 
