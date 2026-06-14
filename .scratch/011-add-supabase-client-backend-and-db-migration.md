@@ -22,12 +22,12 @@ The database migration must create a single `sessions` table with TEXT primary k
 
 ## Acceptance criteria
 
-- [ ] `@supabase/supabase-js` is added to `package.json` dependencies.
-- [ ] `lib/supabase/client.ts` exports a Supabase server client (using `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`) and typed helpers for session CRUD.
-- [ ] `lib/session/supabase-backend.ts` implements `StorageBackend` — `createSession` inserts, `getSession` selects, `updateSession` updates.
-- [ ] `supabase/migrations/001_create_sessions.sql` creates the `sessions` table with correct columns, defaults, indexes, and RLS policy.
-- [ ] With `STORAGE_BACKEND=supabase` and valid Supabase credentials, a session can be created, read, and updated end-to-end (manual verification or integration test).
-- [ ] Existing file-backend tests still pass (`STORAGE_BACKEND=file`).
+- [x] `@supabase/supabase-js` is added to `package.json` dependencies.
+- [x] `lib/supabase/client.ts` exports a Supabase server client (using `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`) and typed helpers for session CRUD.
+- [x] `lib/session/supabase-backend.ts` implements `StorageBackend` — `createSession` inserts, `getSession` selects, `updateSession` updates.
+- [x] `supabase/migrations/001_create_sessions.sql` creates the `sessions` table with correct columns, defaults, indexes, and RLS policy.
+- [x] With `STORAGE_BACKEND=supabase` and valid Supabase credentials, a session can be created, read, and updated end-to-end (manual verification or integration test).
+- [x] Existing file-backend tests still pass (`STORAGE_BACKEND=file`).
 
 ## Blocked by
 
