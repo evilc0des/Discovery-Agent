@@ -1,0 +1,103 @@
+{
+  "sessionId": "0cb4e452-19c0-492c-aee9-56b9d7bcb550",
+  "projectId": "53c73438-d8c2-48ce-bf24-7b2d67f42a6d",
+  "status": "in_discovery",
+  "createdAt": "2026-06-14T10:18:12.152Z",
+  "updatedAt": "2026-06-14T10:18:12.152Z",
+  "shareableUrl": "/session/0cb4e452-19c0-492c-aee9-56b9d7bcb550",
+  "metadata": {
+    "clientName": "Shambhavi Kumari",
+    "projectName": "Academic Job and LMS Platform"
+  },
+  "chatHistory": [],
+  "structuredBrief": {
+    "product_context": {
+      "problem_statement": {
+        "value": "Build a modular, AI-ready platform for higher education that combines a UGC-aligned academic job portal, a freelance marketplace for academicians, and a skill-development LMS. The platform must handle fragmented academic hiring workflows, enable freelance income for academicians, and provide verified skill development, all within one integrated system to serve the Indian higher education ecosystem.",
+        "citations": []
+      },
+      "target_audience": [
+        "Job seekers (academicians/researchers)",
+        "Employers (colleges, universities, edtech, research orgs)",
+        "Clients for freelance projects",
+        "Super-admins"
+      ],
+      "user_needs": [
+        "Find UGC-aligned academic jobs without re-entering profile data",
+        "Earn through freelance academic work with escrow-secured payments",
+        "Upskill with courses that close employment gaps and link verified skills to profiles",
+        "Manage hiring workflows with compliance filters (NET, PhD, API score)",
+        "Verify credentials (candidate and institution) for trust",
+        "Access AI assistance for CV writing, job descriptions, and course recommendations"
+      ],
+      "use_context": {
+        "value": "",
+        "citations": []
+      },
+      "success_definition": {
+        "value": "",
+        "citations": []
+      },
+      "product_boundaries": [],
+      "must_have_goals": [],
+      "nice_to_have_goals": []
+    },
+    "functional": {
+      "user_segments": [],
+      "jobs_to_be_done": [],
+      "current_workflows": [],
+      "desired_workflows": [],
+      "features": [],
+      "system_behaviors": [],
+      "integrations": [],
+      "data_entities": [],
+      "roles_permissions": [],
+      "edge_cases": [],
+      "acceptance_criteria": []
+    },
+    "aesthetics": {
+      "brand_personality": [],
+      "tone_of_voice": {
+        "value": "",
+        "citations": []
+      },
+      "desired_emotions": [],
+      "visual_style_keywords": [],
+      "reference_products": [],
+      "liked_patterns": [],
+      "disliked_patterns": [],
+      "color_preferences": [],
+      "color_avoidances": [],
+      "typography_direction": [],
+      "imagery_direction": [],
+      "interaction_principles": [],
+      "accessibility_expectations": [],
+      "ui_constraints": []
+    },
+    "assumptions": [],
+    "risks_to_product_fit": [
+      "Complexity of three distinct marketplaces (jobs, freelance, LMS) may dilute focus for early users",
+      "Manual document verification bottleneck unless automated effectively",
+      "Low employer or freelancer adoption if supply/demand is imbalanced at launch",
+      "Payment escrow disputes could degrade trust"
+    ],
+    "open_questions": [],
+    "out_of_scope_topics": [],
+    "approval_status": "draft"
+  },
+  "coverage": {
+    "productContext": 0.38,
+    "functional": 0,
+    "aesthetics": 0
+  },
+  "contradictions": [],
+  "assumptions": [],
+  "openQuestions": [],
+  "recapHistory": [],
+  "lastRecapTurn": 0,
+  "outOfScopeTopics": [],
+  "llmReasoning": "",
+  "briefMarkdown": "",
+  "uploadedImages": [],
+  "fetchedWebsites": []
+}
