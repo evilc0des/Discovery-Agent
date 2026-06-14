@@ -21,6 +21,10 @@ RUN npm run build
 
 # Copy native canvas modules into standalone output (Next.js doesn't trace platform-specific native deps)
 RUN cp -a /app/node_modules/@napi-rs /app/.next/standalone/node_modules/
+# pdfjs-dist worker file is loaded via path resolution, not import tracing
+RUN cp -a /app/node_modules/pdfjs-dist /app/.next/standalone/node_modules/
+# pdf-parse bundles its own worker reference; keep full package
+RUN cp -a /app/node_modules/pdf-parse /app/.next/standalone/node_modules/
 
 # Production image, copy all the files and run next
 FROM base AS runner
