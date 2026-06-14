@@ -13,7 +13,7 @@ services:
       - NODE_ENV=production
       - SESSIONS_DIR=/app/sessions
       # Supabase backend (uncomment and set these when using STORAGE_BACKEND=supabase)
-      # - STORAGE_BACKEND=supabase
-      # - SUPABASE_URL=https://<project>.supabase.co
-      # - SUPABASE_SERVICE_ROLE_KEY=sb_secret_...
-      # - SUPABASE_STORAGE_BUCKET=client-uploads
+      - STORAGE_BACKEND=supabase
+      - SUPABASE_URL=https://https://yevtdkyyqorpcfezxrso.supabase.co
+      - SUPABASE_PUBLISHABLE_KEY=sb_publishable_YB-1oYihhDnycdM42NIARw_hVme0xz0
+      - SUPABASE_STORAGE_BUCKET=client-uploads

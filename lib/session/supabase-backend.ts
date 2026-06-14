@@ -2,7 +2,7 @@ import type { StorageBackend } from './backend';
 import type { Session } from './schema';
 import { getSupabaseClient, type SessionRow } from '../supabase/client';
 
-function sessionToRow(session: Session): SessionRow {
+export function sessionToRow(session: Session): SessionRow {
   return {
     id: session.sessionId,
     project_id: session.projectId,

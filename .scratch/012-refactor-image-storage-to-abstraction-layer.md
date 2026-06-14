@@ -17,12 +17,12 @@ Both implementations must return the same metadata shape (`id`, `originalName`, 
 
 ## Acceptance criteria
 
-- [ ] `lib/storage/image-storage.ts` defines the `ImageStorage` interface with a `storeImage` method (same signature as the existing `storeImage` in `lib/files.ts`).
-- [ ] `FileImageStorage` implements `ImageStorage` by delegating to the existing `storeImage` in `lib/files.ts`.
-- [ ] `SupabaseImageStorage` implements `ImageStorage` via Supabase Storage bucket upload, returning the expected metadata shape.
-- [ ] `app/api/session/[id]/chat/route.ts` uses the abstracted image storage (picked by `STORAGE_BACKEND` env) instead of importing `storeImage` directly.
-- [ ] Existing image upload tests pass with `STORAGE_BACKEND=file`.
-- [ ] With `STORAGE_BACKEND=supabase`, an image upload stores to the Supabase bucket and the session record contains the storage reference.
+- [x] `lib/storage/image-storage.ts` defines the `ImageStorage` interface with a `storeImage` method (same signature as the existing `storeImage` in `lib/files.ts`).
+- [x] `FileImageStorage` implements `ImageStorage` by delegating to the existing `storeImage` in `lib/files.ts`.
+- [x] `SupabaseImageStorage` implements `ImageStorage` via Supabase Storage bucket upload, returning the expected metadata shape.
+- [x] `app/api/session/[id]/chat/route.ts` uses the abstracted image storage (picked by `STORAGE_BACKEND` env) instead of importing `storeImage` directly.
+- [x] Existing image upload tests pass with `STORAGE_BACKEND=file`.
+- [x] With `STORAGE_BACKEND=supabase`, an image upload stores to the Supabase bucket and the session record contains the storage reference.
 
 ## Blocked by
 

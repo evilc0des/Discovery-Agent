@@ -26,8 +26,8 @@ CREATE INDEX idx_sessions_updated_at ON sessions(updated_at);
 
 ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY service_role_all ON sessions
+CREATE POLICY anon_all ON sessions
   FOR ALL
-  TO service_role
+  TO anon
   USING (true)
   WITH CHECK (true);

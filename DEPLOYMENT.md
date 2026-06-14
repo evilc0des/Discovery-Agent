@@ -19,7 +19,7 @@
 | `PORT` | No | `3000` | HTTP server port |
 | `STORAGE_BACKEND` | No | `file` | `file` or `supabase` |
 | `SUPABASE_URL` | If `supabase` | — | Supabase project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | If `supabase` | — | Supabase service role key |
+| `SUPABASE_PUBLISHABLE_KEY` | If `supabase` | — | Supabase publishable (anon) key |
 | `SUPABASE_STORAGE_BUCKET` | No | `client-uploads` | Supabase storage bucket name |
 
 ## Platform Options

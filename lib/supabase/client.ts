@@ -28,10 +28,10 @@ let supabaseClient: ReturnType<typeof createClient> | null = null;
 export function getSupabaseClient() {
   if (!supabaseClient) {
     const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const key = process.env.SUPABASE_PUBLISHABLE_KEY;
     if (!url || !key) {
       throw new Error(
-        'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set when STORAGE_BACKEND=supabase',
+        'SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY must be set when STORAGE_BACKEND=supabase',
       );
     }
     supabaseClient = createClient(url, key);
