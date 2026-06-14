@@ -27,23 +27,22 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV SESSIONS_DIR=/app/sessions
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs && \
+    apk add --no-cache su-exec
 
-# Set up sessions directory with correct permissions
-RUN mkdir -p /app/sessions && chown nextjs:nodejs /app/sessions
+RUN mkdir -p /app/sessions /app/.next/cache && \
+    chown -R nextjs:nodejs /app/sessions /app/.next/cache
 
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 
-USER nextjs
+RUN chmod +x /app/docker-entrypoint.sh
 
 EXPOSE 3000
-
 ENV PORT=3000
 
-# Create a volume for sessions persistence
-VOLUME ["/app/sessions"]
-
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["node", "server.js"]

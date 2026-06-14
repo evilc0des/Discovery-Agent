@@ -17,6 +17,10 @@
 | `SESSIONS_DIR` | No | `sessions` | Directory for session JSON files |
 | `UPLOADS_DIR` | No | `uploads` | Directory for uploaded files |
 | `PORT` | No | `3000` | HTTP server port |
+| `STORAGE_BACKEND` | No | `file` | `file` or `supabase` |
+| `SUPABASE_URL` | If `supabase` | — | Supabase project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | If `supabase` | — | Supabase service role key |
+| `SUPABASE_STORAGE_BUCKET` | No | `client-uploads` | Supabase storage bucket name |
 
 ## Platform Options
 

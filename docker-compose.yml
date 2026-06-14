@@ -12,3 +12,8 @@ services:
     environment:
       - NODE_ENV=production
       - SESSIONS_DIR=/app/sessions
+      # Supabase backend (uncomment and set these when using STORAGE_BACKEND=supabase)
+      # - STORAGE_BACKEND=supabase
+      # - SUPABASE_URL=https://<project>.supabase.co
+      # - SUPABASE_SERVICE_ROLE_KEY=sb_secret_...
+      # - SUPABASE_STORAGE_BUCKET=client-uploads
