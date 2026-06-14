@@ -1,5 +1,5 @@
 import { streamObject, generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
+import { digitalocean, DO_MODEL } from './provider';
 import { z } from 'zod';
 import { computeCoverage } from '../coverage';
 
@@ -11,7 +11,7 @@ export const discoverySchema = z.object({
       functional: z.number().min(0).max(1),
       aesthetics: z.number().min(0).max(1),
     }),
-    extracted: z.record(z.string(), z.any()),
+    extracted: z.array(z.object({ key: z.string(), value: z.string() })),
     contradictions: z.array(z.string()),
     open_questions: z.array(z.string()),
     assumptions: z.array(z.string()),
@@ -156,7 +156,7 @@ export async function generateChatResponse(args: {
   });
 
   const result = streamObject({
-    model: openai('gpt-4o'),
+    model: digitalocean.chat(DO_MODEL),
     schema: discoverySchema,
     system,
     messages,
@@ -172,7 +172,7 @@ export async function generateFallbackResponse(args: {
   messages: Array<{ role: string; content: string }>;
 }): Promise<string> {
   const { text } = await generateText({
-    model: openai('gpt-4o-mini'),
+    model: digitalocean.chat(DO_MODEL),
     system: systemPrompt,
     messages: args.messages.map((m) => ({
       role: m.role as 'user' | 'assistant',

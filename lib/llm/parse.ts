@@ -1,5 +1,5 @@
 import { generateObject } from 'ai';
-import { openai } from '@ai-sdk/openai';
+import { digitalocean, DO_MODEL } from './provider';
 import { z } from 'zod';
 
 const intakeParseSchema = z.object({
@@ -96,7 +96,7 @@ Be specific and use the client's own language where possible.`;
 
 export async function parseIntakeText(text: string) {
   const { object } = await generateObject({
-    model: openai('gpt-4o'),
+    model: digitalocean.chat(DO_MODEL),
     schema: intakeParseSchema,
     system: intakeSystemPrompt,
     prompt: text,

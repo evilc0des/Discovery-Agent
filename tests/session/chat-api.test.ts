@@ -15,7 +15,7 @@ function makeMockStreamResult(
   message: string,
   stateUpdate: {
     coverage: { product_context: number; functional: number; aesthetics: number };
-    extracted?: Record<string, unknown>;
+    extracted?: Array<{ key: string; value: string }>;
     contradictions?: string[];
     open_questions?: string[];
     assumptions?: string[];
@@ -28,7 +28,7 @@ function makeMockStreamResult(
     message,
     state_update: {
       coverage: stateUpdate.coverage,
-      extracted: stateUpdate.extracted ?? {},
+      extracted: stateUpdate.extracted ?? [],
       contradictions: stateUpdate.contradictions ?? [],
       open_questions: stateUpdate.open_questions ?? [],
       assumptions: stateUpdate.assumptions ?? [],

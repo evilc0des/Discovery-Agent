@@ -1,0 +1,104 @@
+{
+  "sessionId": "f4367b0e-e542-4551-a971-61456d67b8b3",
+  "projectId": "239b06df-be4d-44bc-a0f3-0d27a8a71e8c",
+  "status": "in_discovery",
+  "createdAt": "2026-06-13T14:54:55.203Z",
+  "updatedAt": "2026-06-13T19:27:43.891Z",
+  "shareableUrl": "",
+  "metadata": {
+    "clientName": "",
+    "projectName": ""
+  },
+  "chatHistory": [
+    {
+      "turnNumber": 1,
+      "role": "user",
+      "content": "Hello",
+      "contentType": "text",
+      "timestamp": "2026-06-13T19:27:32.290Z"
+    },
+    {
+      "turnNumber": 2,
+      "role": "assistant",
+      "content": "Welcome! I'm looking forward to learning all about the product you have in mind. To kick things off and build our product context, let's start at the very beginning: what is the core problem you are trying to solve, and for whom?",
+      "contentType": "text",
+      "timestamp": "2026-06-13T19:27:43.891Z"
+    }
+  ],
+  "structuredBrief": {
+    "product_context": {
+      "problem_statement": {
+        "value": "",
+        "citations": []
+      },
+      "target_audience": [],
+      "user_needs": [],
+      "use_context": {
+        "value": "",
+        "citations": []
+      },
+      "success_definition": {
+        "value": "",
+        "citations": []
+      },
+      "product_boundaries": [],
+      "must_have_goals": [],
+      "nice_to_have_goals": []
+    },
+    "functional": {
+      "user_segments": [],
+      "jobs_to_be_done": [],
+      "current_workflows": [],
+      "desired_workflows": [],
+      "features": [],
+      "system_behaviors": [],
+      "integrations": [],
+      "data_entities": [],
+      "roles_permissions": [],
+      "edge_cases": [],
+      "acceptance_criteria": []
+    },
+    "aesthetics": {
+      "brand_personality": [],
+      "tone_of_voice": {
+        "value": "",
+        "citations": []
+      },
+      "desired_emotions": [],
+      "visual_style_keywords": [],
+      "reference_products": [],
+      "liked_patterns": [],
+      "disliked_patterns": [],
+      "color_preferences": [],
+      "color_avoidances": [],
+      "typography_direction": [],
+      "imagery_direction": [],
+      "interaction_principles": [],
+      "accessibility_expectations": [],
+      "ui_constraints": []
+    },
+    "assumptions": [],
+    "risks_to_product_fit": [],
+    "open_questions": [],
+    "out_of_scope_topics": [],
+    "approval_status": "draft"
+  },
+  "coverage": {
+    "productContext": 0,
+    "functional": 0,
+    "aesthetics": 0
+  },
+  "contradictions": [],
+  "assumptions": [],
+  "openQuestions": [
+    "What is the core problem?",
+    "Who is the target audience?"
+  ],
+  "recapHistory": [],
+  "lastRecapTurn": 0,
+  "outOfScopeTopics": [],
+  "llmReasoning": "",
+  "briefMarkdown": "",
+  "uploadedImages": [],
+  "fetchedWebsites": []
+}
