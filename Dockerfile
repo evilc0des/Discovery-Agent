@@ -19,6 +19,9 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
+# Copy native canvas modules into standalone output (Next.js doesn't trace platform-specific native deps)
+RUN cp -a /app/node_modules/@napi-rs /app/.next/standalone/node_modules/
+
 # Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
