@@ -8,7 +8,7 @@ export async function GET(
   const store = new SessionStore();
 
   try {
-    const session = store.getSession(id);
+    const session = await store.getSession(id);
 
     if (!session.briefMarkdown) {
       return new Response(

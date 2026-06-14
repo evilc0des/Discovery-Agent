@@ -2,7 +2,7 @@ import { SessionStore } from '@/lib/session/store';
 
 export async function GET(request: Request) {
   const store = new SessionStore();
-  const session = store.createSession();
+  const session = await store.createSession();
 
   return new Response(
     JSON.stringify({

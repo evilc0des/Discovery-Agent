@@ -10,7 +10,7 @@ export async function GET(
   const store = new SessionStore();
 
   try {
-    const session = store.getSession(id);
+    const session = await store.getSession(id);
     return new Response(
       JSON.stringify({
         sessionId: session.sessionId,
@@ -40,7 +40,7 @@ export async function PATCH(
   const store = new SessionStore();
 
   try {
-    const session = store.getSession(id);
+    const session = await store.getSession(id);
     const body = await request.json();
     const action = body.action as string;
 
@@ -68,7 +68,7 @@ export async function PATCH(
         },
         updatedAt: new Date().toISOString(),
       });
-      store.updateSession(updatedSession);
+      await store.updateSession(updatedSession);
 
       return new Response(
         JSON.stringify({ status: 'approved' }),

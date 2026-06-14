@@ -125,7 +125,7 @@ describe('POST /api/session/[id]/chat - file uploads', () => {
     );
 
     const store = new SessionStore();
-    const session = store.createSession();
+    const session = await store.createSession();
 
     const fileContent = 'Fitness App Requirements\n- Track workouts\n- Set goals\n- View progress';
     const response = await callPostChatWithFile(session.sessionId, {
@@ -143,7 +143,7 @@ describe('POST /api/session/[id]/chat - file uploads', () => {
       typeof m.content === 'string' && m.content.includes('Fitness App Requirements')
     )).toBe(true);
 
-    const updatedSession = store.getSession(session.sessionId);
+    const updatedSession = await store.getSession(session.sessionId);
     expect(updatedSession.chatHistory).toHaveLength(2);
     expect(updatedSession.chatHistory[0].contentType).toBe('file_upload');
     expect(updatedSession.chatHistory[0].content).toContain('requirements.txt');
@@ -158,7 +158,7 @@ describe('POST /api/session/[id]/chat - file uploads', () => {
     );
 
     const store = new SessionStore();
-    const session = store.createSession();
+    const session = await store.createSession();
 
     const response = await callPostChatWithFile(session.sessionId, {
       buffer: createMinimalPng(),
@@ -175,7 +175,7 @@ describe('POST /api/session/[id]/chat - file uploads', () => {
     expect(fs.existsSync(imagePath)).toBe(true);
 
     // Verify session file updated with image metadata
-    const updatedSession = store.getSession(session.sessionId);
+    const updatedSession = await store.getSession(session.sessionId);
     expect(updatedSession.uploadedImages).toHaveLength(1);
     const img = updatedSession.uploadedImages[0];
     expect(img.originalName).toBe('reference.png');
@@ -190,7 +190,7 @@ describe('POST /api/session/[id]/chat - file uploads', () => {
 
   it('returns 400 error for unsupported file formats', async () => {
     const store = new SessionStore();
-    const session = store.createSession();
+    const session = await store.createSession();
 
     const response = await callPostChatWithFile(session.sessionId, {
       buffer: Buffer.from('fake word doc content', 'utf-8'),
@@ -204,7 +204,7 @@ describe('POST /api/session/[id]/chat - file uploads', () => {
     expect(body.error).toContain('document.docx');
 
     // Verify session was not modified
-    const unchangedSession = store.getSession(session.sessionId);
+    const unchangedSession = await store.getSession(session.sessionId);
     expect(unchangedSession.chatHistory).toHaveLength(0);
     expect(unchangedSession.uploadedImages).toHaveLength(0);
   });

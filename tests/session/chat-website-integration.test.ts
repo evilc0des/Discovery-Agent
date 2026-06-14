@@ -114,7 +114,7 @@ describe('POST /api/session/[id]/chat with website links', () => {
     });
 
     const store = new SessionStore();
-    const session = store.createSession();
+    const session = await store.createSession();
 
     const response = await callPostChat(session.sessionId, 'Check out https://fitlife.example.com and tell me what you think');
     expect(response.status).toBe(200);
@@ -130,7 +130,7 @@ describe('POST /api/session/[id]/chat with website links', () => {
     expect(lastMessage.content).toContain('Welcome to FitLife');
     expect(lastMessage.content).toContain('Check out https://fitlife.example.com');
 
-    const updatedSession = store.getSession(session.sessionId);
+    const updatedSession = await store.getSession(session.sessionId);
     expect(updatedSession.fetchedWebsites).toHaveLength(1);
     expect(updatedSession.fetchedWebsites[0].url).toBe('https://fitlife.example.com');
     expect(updatedSession.fetchedWebsites[0].title).toBe('FitLife - Premium Fitness Coaching');
@@ -147,7 +147,7 @@ describe('POST /api/session/[id]/chat with website links', () => {
     vi.mocked(fetchWebsiteContent).mockResolvedValue(null);
 
     const store = new SessionStore();
-    const session = store.createSession();
+    const session = await store.createSession();
 
     const response = await callPostChat(session.sessionId, 'Look at https://broken.example.com');
     expect(response.status).toBe(200);
@@ -168,7 +168,7 @@ describe('POST /api/session/[id]/chat with website links', () => {
     );
 
     const store = new SessionStore();
-    const session = store.createSession();
+    const session = await store.createSession();
 
     const response = await callPostChat(session.sessionId, 'I want to build a fitness app');
     expect(response.status).toBe(200);
@@ -180,7 +180,7 @@ describe('POST /api/session/[id]/chat with website links', () => {
     const lastMessage = callArgs.messages[callArgs.messages.length - 1];
     expect(lastMessage.content).toBe('I want to build a fitness app');
 
-    const updatedSession = store.getSession(session.sessionId);
+    const updatedSession = await store.getSession(session.sessionId);
     expect(updatedSession.fetchedWebsites).toHaveLength(0);
   });
 });

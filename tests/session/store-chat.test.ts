@@ -20,11 +20,11 @@ describe('SessionStore chat support', () => {
     delete process.env.SESSIONS_DIR;
   });
 
-  it('getSession returns a previously created session', () => {
+  it('getSession returns a previously created session', async () => {
     const store = new SessionStore();
-    const created = store.createSession();
+    const created = await store.createSession();
 
-    const retrieved = store.getSession(created.sessionId);
+    const retrieved = await store.getSession(created.sessionId);
     expect(retrieved.sessionId).toBe(created.sessionId);
     expect(retrieved.projectId).toBe(created.projectId);
     expect(retrieved.chatHistory).toEqual([]);
@@ -35,14 +35,14 @@ describe('SessionStore chat support', () => {
     });
   });
 
-  it('getSession throws if session does not exist', () => {
+  it('getSession throws if session does not exist', async () => {
     const store = new SessionStore();
-    expect(() => store.getSession('non-existent-id')).toThrow();
+    await expect(store.getSession('non-existent-id')).rejects.toThrow();
   });
 
-  it('updateSession persists changes to disk', () => {
+  it('updateSession persists changes to disk', async () => {
     const store = new SessionStore();
-    const session = store.createSession();
+    const session = await store.createSession();
 
     const updated = {
       ...session,
@@ -62,9 +62,9 @@ describe('SessionStore chat support', () => {
       },
     };
 
-    store.updateSession(updated);
+    await store.updateSession(updated);
 
-    const retrieved = store.getSession(session.sessionId);
+    const retrieved = await store.getSession(session.sessionId);
     expect(retrieved.chatHistory).toHaveLength(1);
     expect(retrieved.chatHistory[0].content).toBe('Hello');
     expect(retrieved.coverage).toEqual({

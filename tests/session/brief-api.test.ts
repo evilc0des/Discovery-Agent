@@ -28,10 +28,10 @@ describe('GET /api/session/[id]/brief', () => {
 
   it('returns the brief markdown as a downloadable file when brief is ready', async () => {
     const store = new SessionStore();
-    const session = store.createSession();
+    const session = await store.createSession();
     session.status = 'brief_ready';
     session.briefMarkdown = '# Structured Discovery Brief\n\n## Product Context\n\nSome content\n';
-    store.updateSession(session);
+    await store.updateSession(session);
 
     const response = await callGetBrief(session.sessionId);
     expect(response.status).toBe(200);
@@ -45,7 +45,7 @@ describe('GET /api/session/[id]/brief', () => {
 
   it('returns 404 when brief markdown is not yet generated', async () => {
     const store = new SessionStore();
-    const session = store.createSession();
+    const session = await store.createSession();
 
     const response = await callGetBrief(session.sessionId);
     expect(response.status).toBe(404);
@@ -56,10 +56,10 @@ describe('GET /api/session/[id]/brief', () => {
 
   it('returns the brief when approved', async () => {
     const store = new SessionStore();
-    const session = store.createSession();
+    const session = await store.createSession();
     session.status = 'approved';
     session.briefMarkdown = '# Approved Brief\n\nApproved content\n';
-    store.updateSession(session);
+    await store.updateSession(session);
 
     const response = await callGetBrief(session.sessionId);
     expect(response.status).toBe(200);

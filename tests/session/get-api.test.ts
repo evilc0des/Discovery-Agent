@@ -28,7 +28,7 @@ describe('GET /api/session/[id]', () => {
 
   it('returns session data for existing session', async () => {
     const store = new SessionStore();
-    const session = store.createSession();
+    const session = await store.createSession();
 
     const response = await callGetSession(session.sessionId);
     expect(response.status).toBe(200);

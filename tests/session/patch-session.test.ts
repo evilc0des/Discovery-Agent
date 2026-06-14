@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import { SessionStore } from '@/lib/session/store';
+import { createDefaultStructuredBrief } from '@/lib/session/schema';
 
 const TEST_SESSIONS_DIR = path.join(process.cwd(), 'test-sessions-patch');
 
@@ -33,17 +34,12 @@ describe('PATCH /api/session/[id]', () => {
 
   it('approve: transitions session status to approved and sets brief approval_status to approved', async () => {
     const store = new SessionStore();
-    const session = store.createSeededSession({
-      structuredBrief: (() => {
-        const defaults = JSON.parse(JSON.stringify(store.createSession().structuredBrief));
-        defaults.approval_status = 'draft';
-        return defaults;
-      })(),
+    const session = await store.createSeededSession({
+      structuredBrief: createDefaultStructuredBrief(),
     });
 
-    // Set session to brief_ready so it can be approved
     session.status = 'brief_ready';
-    store.updateSession(session);
+    await store.updateSession(session);
 
     const response = await callPatchSession(session.sessionId, { action: 'approve' });
     expect(response.status).toBe(200);
@@ -51,14 +47,14 @@ describe('PATCH /api/session/[id]', () => {
     const body = await response.json();
     expect(body.status).toBe('approved');
 
-    const updated = store.getSession(session.sessionId);
+    const updated = await store.getSession(session.sessionId);
     expect(updated.status).toBe('approved');
     expect(updated.structuredBrief.approval_status).toBe('approved');
   });
 
   it('approve: rejects when session is not in brief_ready state', async () => {
     const store = new SessionStore();
-    const session = store.createSession();
+    const session = await store.createSession();
 
     const response = await callPatchSession(session.sessionId, { action: 'approve' });
     expect(response.status).toBe(409);
@@ -69,9 +65,9 @@ describe('PATCH /api/session/[id]', () => {
 
   it('revise: transitions session status back to in_discovery', async () => {
     const store = new SessionStore();
-    const session = store.createSession();
+    const session = await store.createSession();
     session.status = 'brief_ready';
-    store.updateSession(session);
+    await store.updateSession(session);
 
     const response = await callPatchSession(session.sessionId, { action: 'revise' });
     expect(response.status).toBe(200);
@@ -79,13 +75,13 @@ describe('PATCH /api/session/[id]', () => {
     const body = await response.json();
     expect(body.status).toBe('in_discovery');
 
-    const updated = store.getSession(session.sessionId);
+    const updated = await store.getSession(session.sessionId);
     expect(updated.status).toBe('in_discovery');
   });
 
   it('revise: rejects when session is not in brief_ready state', async () => {
     const store = new SessionStore();
-    const session = store.createSession();
+    const session = await store.createSession();
 
     const response = await callPatchSession(session.sessionId, { action: 'revise' });
     expect(response.status).toBe(409);
@@ -96,9 +92,9 @@ describe('PATCH /api/session/[id]', () => {
 
   it('returns 400 for invalid action', async () => {
     const store = new SessionStore();
-    const session = store.createSession();
+    const session = await store.createSession();
     session.status = 'brief_ready';
-    store.updateSession(session);
+    await store.updateSession(session);
 
     const response = await callPatchSession(session.sessionId, { action: 'invalid' });
     expect(response.status).toBe(400);

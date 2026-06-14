@@ -3,9 +3,9 @@ import path from 'path';
 import { sessionSchema, type Session } from './schema';
 
 export interface StorageBackend {
-  createSession(session: Session): void;
-  getSession(sessionId: string): Session;
-  updateSession(session: Session): void;
+  createSession(session: Session): Promise<void>;
+  getSession(sessionId: string): Promise<Session>;
+  updateSession(session: Session): Promise<void>;
 }
 
 export class FileSessionBackend implements StorageBackend {
@@ -21,7 +21,7 @@ export class FileSessionBackend implements StorageBackend {
     return path.join(this.dir, `${sessionId}.json`);
   }
 
-  createSession(session: Session): void {
+  async createSession(session: Session): Promise<void> {
     this.ensureDirectory();
     fs.writeFileSync(
       this.getSessionPath(session.sessionId),
@@ -29,7 +29,7 @@ export class FileSessionBackend implements StorageBackend {
     );
   }
 
-  getSession(sessionId: string): Session {
+  async getSession(sessionId: string): Promise<Session> {
     const filePath = this.getSessionPath(sessionId);
     if (!fs.existsSync(filePath)) {
       throw new Error(`Session not found: ${sessionId}`);
@@ -38,7 +38,7 @@ export class FileSessionBackend implements StorageBackend {
     return sessionSchema.parse(JSON.parse(content));
   }
 
-  updateSession(session: Session): void {
+  async updateSession(session: Session): Promise<void> {
     const filePath = this.getSessionPath(session.sessionId);
     const validated = sessionSchema.parse(session);
     fs.writeFileSync(filePath, JSON.stringify(validated, null, 2));

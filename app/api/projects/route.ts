@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   const shareableUrl = `/session/${sessionId}`;
 
   const store = new SessionStore();
-  const session = store.createSeededSession({
+  const session = await store.createSeededSession({
     clientName: clientName || undefined,
     projectName: projectName || undefined,
     structuredBrief,

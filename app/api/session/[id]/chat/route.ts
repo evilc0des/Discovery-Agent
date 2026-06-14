@@ -12,7 +12,7 @@ export async function POST(
   const { id } = await params;
 
   const store = new SessionStore();
-  const session = store.getSession(id);
+  const session = await store.getSession(id);
 
   const now = new Date().toISOString();
   const turnNumber = session.chatHistory.length + 1;
@@ -184,7 +184,7 @@ export async function POST(
         updatedAt: new Date().toISOString(),
       };
 
-      store.updateSession(updatedSession);
+      await store.updateSession(updatedSession);
 
       return new Response(
         JSON.stringify({
@@ -262,7 +262,7 @@ export async function POST(
     updatedAt: new Date().toISOString(),
   };
 
-  store.updateSession(updatedSession);
+  await store.updateSession(updatedSession);
 
   const encoder = new TextEncoder();
   const body = new ReadableStream({

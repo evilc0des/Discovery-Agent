@@ -3,8 +3,8 @@ import { SessionStore } from '@/lib/session/store';
 
 export const dynamic = 'force-dynamic';
 
-export default function SessionPage() {
+export default async function SessionPage() {
   const store = new SessionStore();
-  const session = store.createSession();
+  const session = await store.createSession();
   redirect(`/session/${session.sessionId}`);
 }

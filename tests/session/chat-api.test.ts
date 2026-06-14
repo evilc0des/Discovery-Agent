@@ -99,7 +99,7 @@ describe('POST /api/session/[id]/chat', () => {
     );
 
     const store = new SessionStore();
-    const session = store.createSession();
+    const session = await store.createSession();
 
     const response = await callPostChat(session.sessionId, 'I want to build a fitness app');
     expect(response.status).toBe(200);
@@ -111,7 +111,7 @@ describe('POST /api/session/[id]/chat', () => {
     const lastLine = JSON.parse(lines[lines.length - 1]);
     expect(lastLine.message).toBe('What problem does your product solve?');
 
-    const updatedSession = store.getSession(session.sessionId);
+    const updatedSession = await store.getSession(session.sessionId);
     expect(updatedSession.chatHistory).toHaveLength(2);
     expect(updatedSession.chatHistory[0].role).toBe('user');
     expect(updatedSession.chatHistory[1].role).toBe('assistant');
@@ -130,7 +130,7 @@ describe('POST /api/session/[id]/chat', () => {
     );
 
     const store = new SessionStore();
-    const session = store.createSeededSession({
+    const session = await store.createSeededSession({
       sessionId: 'test-recap-session',
     });
 
@@ -151,7 +151,7 @@ describe('POST /api/session/[id]/chat', () => {
       { role: 'assistant', content: 'resp7', turnNumber: 14, contentType: 'text', timestamp: new Date().toISOString() },
     ];
     session.lastRecapTurn = 0;
-    store.updateSession(session);
+    await store.updateSession(session);
 
     await callPostChat(session.sessionId, 'And one more thing...');
 
@@ -177,11 +177,11 @@ describe('POST /api/session/[id]/chat', () => {
     );
 
     const store = new SessionStore();
-    const session = store.createSession();
+    const session = await store.createSession();
 
     await callPostChat(session.sessionId, 'initial message');
 
-    const updated = store.getSession(session.sessionId);
+    const updated = await store.getSession(session.sessionId);
     expect(updated.lastRecapTurn).toBe(2);
     expect(updated.recapHistory).toHaveLength(1);
     expect(updated.recapHistory[0].turnNumber).toBe(2);
@@ -197,11 +197,11 @@ describe('POST /api/session/[id]/chat', () => {
     );
 
     const store = new SessionStore();
-    const session = store.createSession();
+    const session = await store.createSession();
 
     await callPostChat(session.sessionId, 'I want an app');
 
-    const updated = store.getSession(session.sessionId);
+    const updated = await store.getSession(session.sessionId);
     expect(updated.lastRecapTurn).toBe(0);
     expect(updated.recapHistory).toHaveLength(0);
   });
@@ -218,14 +218,14 @@ describe('POST /api/session/[id]/chat', () => {
     );
 
     const store = new SessionStore();
-    const session = store.createSession();
+    const session = await store.createSession();
     session.structuredBrief.product_context.problem_statement.value = 'A test problem';
-    store.updateSession(session);
+    await store.updateSession(session);
 
     const response = await callPostChat(session.sessionId, 'I think we are done');
     expect(response.status).toBe(200);
 
-    const updated = store.getSession(session.sessionId);
+    const updated = await store.getSession(session.sessionId);
     expect(updated.status).toBe('brief_ready');
     expect(updated.briefMarkdown).toBeTruthy();
     expect(updated.briefMarkdown).toContain('# Structured Discovery Brief');
@@ -244,15 +244,15 @@ describe('POST /api/session/[id]/chat', () => {
     );
 
     const store = new SessionStore();
-    const session = store.createSession();
+    const session = await store.createSession();
     session.coverage = { productContext: 0.3, functional: 0.2, aesthetics: 0.1 };
     session.structuredBrief.product_context.problem_statement.value = 'A test problem';
-    store.updateSession(session);
+    await store.updateSession(session);
 
     const response = await callPostChat(session.sessionId, 'stop now please');
     expect(response.status).toBe(200);
 
-    const updated = store.getSession(session.sessionId);
+    const updated = await store.getSession(session.sessionId);
     expect(updated.status).toBe('brief_ready');
     expect(updated.briefMarkdown).toContain('**Warning**');
     expect(updated.briefMarkdown).toContain('incomplete');
@@ -265,7 +265,7 @@ describe('POST /api/session/[id]/chat', () => {
     );
 
     const store = new SessionStore();
-    const session = store.createSession();
+    const session = await store.createSession();
 
     const response = await callPostChat(session.sessionId, 'I want to build a fitness app');
     expect(response.status).toBe(200);
@@ -274,7 +274,7 @@ describe('POST /api/session/[id]/chat', () => {
     expect(body.message).toBe('I am having trouble processing that. Could you tell me more?');
     expect(body.fallback).toBe(true);
 
-    const updatedSession = store.getSession(session.sessionId);
+    const updatedSession = await store.getSession(session.sessionId);
     expect(updatedSession.chatHistory).toHaveLength(2);
     expect(updatedSession.coverage).toEqual({
       productContext: 0.0,

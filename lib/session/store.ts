@@ -2,12 +2,15 @@ import { randomUUID } from 'crypto';
 import { sessionSchema, createDefaultStructuredBrief, type Session } from './schema';
 import { computeCoverage } from '../coverage';
 import { type StorageBackend, FileSessionBackend } from './backend';
+import { SupabaseSessionBackend } from './supabase-backend';
 
 function createBackend(dir: string): StorageBackend {
   const backend = process.env.STORAGE_BACKEND || 'file';
   switch (backend) {
     case 'file':
       return new FileSessionBackend(dir);
+    case 'supabase':
+      return new SupabaseSessionBackend();
     default:
       throw new Error(`Unknown STORAGE_BACKEND: ${backend}`);
   }
@@ -20,17 +23,17 @@ export class SessionStore {
     this.backend = createBackend(this.dir);
   }
 
-  createSession(): Session {
+  async createSession(): Promise<Session> {
     return this.createSeededSession();
   }
 
-  createSeededSession(opts?: {
+  async createSeededSession(opts?: {
     clientName?: string;
     projectName?: string;
     structuredBrief?: ReturnType<typeof createDefaultStructuredBrief>;
     sessionId?: string;
     shareableUrl?: string;
-  }): Session {
+  }): Promise<Session> {
     const sessionId = opts?.sessionId || randomUUID();
     const projectId = randomUUID();
     const now = new Date().toISOString();
@@ -62,15 +65,15 @@ export class SessionStore {
       fetchedWebsites: [],
     });
 
-    this.backend.createSession(session);
+    await this.backend.createSession(session);
     return session;
   }
 
-  getSession(sessionId: string): Session {
+  async getSession(sessionId: string): Promise<Session> {
     return this.backend.getSession(sessionId);
   }
 
-  updateSession(session: Session): void {
-    this.backend.updateSession(session);
+  async updateSession(session: Session): Promise<void> {
+    await this.backend.updateSession(session);
   }
 }
