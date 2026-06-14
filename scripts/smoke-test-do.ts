@@ -83,7 +83,7 @@ async function testConnectivity(model: string): Promise<boolean> {
     const r = await generateText({
       model: digitalocean.chat(model),
       prompt: 'Say "OK" and nothing else.',
-      maxTokens: 10,
+      maxOutputTokens: 10,
     });
     console.log(`   ✅ connectivity      → "${r.text.trim()}"`);
     return true;
@@ -101,7 +101,7 @@ async function testStructuredOutput(model: string): Promise<boolean> {
       schema: smokeSchema,
       system: 'You are a product discovery assistant. Respond with valid JSON matching the schema exactly.',
       prompt: 'Client: "I need a task management app." Provide 2 open questions and 2 assumptions.',
-      maxTokens: 500,
+      maxOutputTokens: 500,
     });
     console.log(`   ✅ structured output → "${r.object.message.slice(0, 80)}..."`);
     return true;
