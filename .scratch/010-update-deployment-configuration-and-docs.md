@@ -17,12 +17,12 @@ The vars to document are: `STORAGE_BACKEND`, `SUPABASE_URL`, `SUPABASE_SERVICE_R
 
 ## Acceptance criteria
 
-- [ ] `DEPLOYMENT.md` env var table includes `STORAGE_BACKEND | No | file | file or supabase`.
-- [ ] `DEPLOYMENT.md` env var table includes `SUPABASE_URL | If supabase | — | Supabase project URL`.
-- [ ] `DEPLOYMENT.md` env var table includes `SUPABASE_SERVICE_ROLE_KEY | If supabase | — | Supabase service role key`.
-- [ ] `DEPLOYMENT.md` env var table includes `SUPABASE_STORAGE_BUCKET | No | client-uploads | Supabase storage bucket name`.
-- [ ] `docker-compose.yml` has the four new env vars listed in the `environment` block, commented out with a note that they are only needed for the Supabase backend.
-- [ ] `docker compose config` parses without errors.
+- [x] `DEPLOYMENT.md` env var table includes `STORAGE_BACKEND | No | file | file or supabase`.
+- [x] `DEPLOYMENT.md` env var table includes `SUPABASE_URL | If supabase | — | Supabase project URL`.
+- [x] `DEPLOYMENT.md` env var table includes `SUPABASE_SERVICE_ROLE_KEY | If supabase | — | Supabase service role key`.
+- [x] `DEPLOYMENT.md` env var table includes `SUPABASE_STORAGE_BUCKET | No | client-uploads | Supabase storage bucket name`.
+- [x] `docker-compose.yml` has the four new env vars listed in the `environment` block, commented out with a note that they are only needed for the Supabase backend.
+- [x] `docker compose config` parses without errors.
 
 ## Blocked by
 
