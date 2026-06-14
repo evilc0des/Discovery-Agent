@@ -5,6 +5,8 @@ import { createDefaultStructuredBrief } from '@/lib/session/schema';
 import { parseIntakeText } from '@/lib/llm/parse';
 import { mergeParsedIntake } from '@/lib/session/merge-intake';
 import { extractText } from '@/lib/files';
+import { computeCoverage } from '@/lib/coverage';
+import { generateInitialAssistantMessage } from '@/lib/llm/chat';
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
@@ -37,6 +39,22 @@ export async function POST(request: NextRequest) {
   const sessionId = randomUUID();
   const shareableUrl = `/session/${sessionId}`;
 
+  const coverage = computeCoverage(structuredBrief);
+  const hasContent = coverage.productContext > 0 || coverage.functional > 0 || coverage.aesthetics > 0;
+
+  let initialChatHistory: Array<{ role: string; content: string }> = [];
+  if (hasContent) {
+    const assistantMessage = generateInitialAssistantMessage({
+      clientName: clientName || undefined,
+      projectName: projectName || undefined,
+      brief: structuredBrief,
+      coverage,
+    });
+    if (assistantMessage) {
+      initialChatHistory = [{ role: 'assistant', content: assistantMessage }];
+    }
+  }
+
   const store = new SessionStore();
   const session = await store.createSeededSession({
     clientName: clientName || undefined,
@@ -44,6 +62,7 @@ export async function POST(request: NextRequest) {
     structuredBrief,
     sessionId,
     shareableUrl,
+    initialChatHistory,
   });
 
   return NextResponse.json({
