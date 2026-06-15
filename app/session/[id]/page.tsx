@@ -53,6 +53,10 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [failedMessage, setFailedMessage] = useState<{
+    content: string;
+    file?: File;
+  } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -113,16 +117,19 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
     }
   }
 
-  async function sendMessage() {
-    if ((!input.trim() && !selectedFile) || !id || loading) return;
+  async function sendMessage(retryContent?: string, retryFile?: File) {
+    const userMessage = retryContent ?? input.trim();
+    const file = retryFile ?? selectedFile;
 
-    const userMessage = input.trim();
-    const file = selectedFile;
+    if ((!userMessage && !file) || !id || loading) return;
 
-    setInput('');
-    setSelectedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    if (!retryContent) {
+      setInput('');
+      setSelectedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      setFailedMessage(null);
     }
 
     const previewContent = file
@@ -186,7 +193,6 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
                 lastIsFinal = true;
               }
             } catch {
-              // skip unparseable lines
             }
           }
         }
@@ -202,7 +208,14 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
         setMessages((prev) => [...prev, { role: 'assistant', content: data.message }]);
         setCoverage(data.coverage);
       }
+
+      setFailedMessage(null);
     } catch {
+      if (retryContent || retryFile) {
+        setFailedMessage({ content: retryContent || '', file: retryFile });
+      } else {
+        setFailedMessage({ content: userMessage, file: file || undefined });
+      }
       setMessages((prev) => [
         ...prev,
         { role: 'assistant', content: 'Sorry, something went wrong. Please try again.' },
@@ -437,6 +450,23 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
               </div>
             </div>
           ))}
+          {failedMessage && !loading && (
+            <div className="flex justify-start">
+              <div className="bg-white border border-orange-200 rounded-lg px-4 py-2 max-w-[80%] lg:max-w-[70%]">
+                <p className="text-sm text-gray-600 mb-2">
+                  The message could not be sent. You can retry without re-typing.
+                </p>
+                <button
+                  onClick={() => {
+                    sendMessage(failedMessage.content, failedMessage.file);
+                  }}
+                  className="rounded-md bg-orange-50 border border-orange-300 px-3 py-1 text-sm text-orange-700 font-medium hover:bg-orange-100 transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          )}
           {loading && (
             <div className="flex justify-start">
               <div className="bg-white border border-gray-200 rounded-lg px-4 py-2 text-gray-500">

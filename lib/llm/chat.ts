@@ -3,6 +3,7 @@ import { digitalocean, DO_MODEL } from './provider';
 import { z } from 'zod';
 import { computeCoverage } from '../coverage';
 import { type structuredBriefSchema } from '../session/schema';
+import { withRetry } from './retry';
 
 type Brief = z.infer<typeof structuredBriefSchema>;
 
@@ -260,12 +261,23 @@ export async function generateChatResponse(args: {
     };
   });
 
-  const result = streamObject({
-    model: digitalocean.chat(DO_MODEL),
-    schema: discoverySchema,
-    system,
-    messages,
-  });
+  const result = await withRetry(
+    async () =>
+      streamObject({
+        model: digitalocean.chat(DO_MODEL),
+        schema: discoverySchema,
+        system,
+        messages,
+      }),
+    {
+      onRetry: (error, attempt) => {
+        console.warn(
+          `[Session ${args.sessionId}] LLM retry attempt ${attempt} after error:`,
+          error instanceof Error ? error.message : String(error),
+        );
+      },
+    },
+  );
 
   return {
     partialObjectStream: result.partialObjectStream,
@@ -308,12 +320,23 @@ export async function generateInitialAssistantMessage(args: {
     '- Exceed 4 short paragraphs',
   ].join('\n');
 
-  const { text } = await generateText({
-    model: digitalocean.chat(DO_MODEL),
-    messages: [
-      { role: 'user' as const, content: userPrompt },
-    ],
-  });
+  const { text } = await withRetry(
+    () =>
+      generateText({
+        model: digitalocean.chat(DO_MODEL),
+        messages: [
+          { role: 'user' as const, content: userPrompt },
+        ],
+      }),
+    {
+      onRetry: (error, attempt) => {
+        console.warn(
+          `[InitialAssistant] LLM retry attempt ${attempt} after error:`,
+          error instanceof Error ? error.message : String(error),
+        );
+      },
+    },
+  );
 
   return text;
 }

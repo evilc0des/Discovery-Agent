@@ -144,60 +144,48 @@ export async function POST(
     partialObjectStream = result.partialObjectStream;
     object = result.object;
   } catch {
-    try {
-      const result = await generateChatResponse({
-        sessionId: id,
-        messages: llmMessages,
-        currentBrief: session.structuredBrief,
-        currentCoverage: session.coverage,
-        turnsSinceLastRecap,
-      });
-      partialObjectStream = result.partialObjectStream;
-      object = result.object;
-    } catch {
-      const fallbackMessage = await generateFallbackResponse({
-        messages: llmMessages.map((m) => ({
-          role: m.role,
-          content: typeof m.content === 'string' ? m.content : m.content.find(p => p.type === 'text')?.text || '[image]',
-        })),
-      });
-      fallback = true;
+    const fallbackMessage = await generateFallbackResponse({
+      messages: llmMessages.map((m) => ({
+        role: m.role,
+        content: typeof m.content === 'string' ? m.content : m.content.find(p => p.type === 'text')?.text || '[image]',
+      })),
+    });
+    fallback = true;
 
-      const assistantMessage = {
-        turnNumber: turnNumber + 1,
-        role: 'assistant' as const,
-        content: fallbackMessage,
-        contentType: 'text' as const,
-        timestamp: new Date().toISOString(),
-      };
+    const assistantMessage = {
+      turnNumber: turnNumber + 1,
+      role: 'assistant' as const,
+      content: fallbackMessage,
+      contentType: 'text' as const,
+      timestamp: new Date().toISOString(),
+    };
 
-      const updatedSession = {
-        ...session,
-        chatHistory: [...session.chatHistory, userMessage, assistantMessage],
-        coverage: {
-          productContext: session.coverage.productContext,
-          functional: session.coverage.functional,
-          aesthetics: session.coverage.aesthetics,
-        },
-        uploadedImages: uploadedImageMeta
-          ? [...session.uploadedImages, uploadedImageMeta]
-          : session.uploadedImages,
-        fetchedWebsites: [...session.fetchedWebsites, ...fetchedWebsitesData],
-        updatedAt: new Date().toISOString(),
-      };
+    const updatedSession = {
+      ...session,
+      chatHistory: [...session.chatHistory, userMessage, assistantMessage],
+      coverage: {
+        productContext: session.coverage.productContext,
+        functional: session.coverage.functional,
+        aesthetics: session.coverage.aesthetics,
+      },
+      uploadedImages: uploadedImageMeta
+        ? [...session.uploadedImages, uploadedImageMeta]
+        : session.uploadedImages,
+      fetchedWebsites: [...session.fetchedWebsites, ...fetchedWebsitesData],
+      updatedAt: new Date().toISOString(),
+    };
 
-      await store.updateSession(updatedSession);
+    await store.updateSession(updatedSession);
 
-      return new Response(
-        JSON.stringify({
-          message: fallbackMessage,
-          coverage: updatedSession.coverage,
-          turnNumber: assistantMessage.turnNumber,
-          fallback,
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+    return new Response(
+      JSON.stringify({
+        message: fallbackMessage,
+        coverage: updatedSession.coverage,
+        turnNumber: assistantMessage.turnNumber,
+        fallback,
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 
   const partials: unknown[] = [];
