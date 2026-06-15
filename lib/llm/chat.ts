@@ -180,6 +180,9 @@ AESTHETICS
 - accessibility expectations
 - UI constraints
 
+Output format:
+Your message field must always use proper Markdown formatting. Use **bold** for emphasis, \`code\` for UI labels or feature names, numbered lists (1. 2. 3.) for sequential items, bullet lists (- - -) for non-ordered items, ### headings for section breaks, and > blockquotes for client quotes. Never output raw unformatted text blocks.
+
 Rules:
 1. Ask one question at a time.
 2. Keep the conversation centered on the product.
@@ -270,95 +273,49 @@ export async function generateChatResponse(args: {
   };
 }
 
-export function generateInitialAssistantMessage(args: {
+export async function generateInitialAssistantMessage(args: {
   clientName?: string;
   projectName?: string;
   brief: Brief;
   coverage: { productContext: number; functional: number; aesthetics: number };
-}): string {
+}): Promise<string> {
   const { clientName, projectName, brief, coverage } = args;
-
-  const cv = (field: { value: string; citations: string[] }) => field.value;
-
-  const domainSummary = (label: string, score: number, filledItems: string[]): string => {
-    if (filledItems.length === 0) return '';
-    return `- **${label}** (${Math.round(score * 100)}% explored): ${filledItems.join(', ')}`;
-  };
 
   const hasContent = coverage.productContext > 0 || coverage.functional > 0 || coverage.aesthetics > 0;
   if (!hasContent) return '';
 
-  const pcFilled: string[] = [];
-  if (cv(brief.product_context.problem_statement).trim()) pcFilled.push('problem statement');
-  if (brief.product_context.target_audience.length > 0) pcFilled.push('target audience');
-  if (brief.product_context.user_needs.length > 0) pcFilled.push('user needs');
-  if (cv(brief.product_context.use_context).trim()) pcFilled.push('use context');
-  if (cv(brief.product_context.success_definition).trim()) pcFilled.push('success definition');
-  if (brief.product_context.product_boundaries.length > 0) pcFilled.push('product boundaries');
-  if (brief.product_context.must_have_goals.length > 0) pcFilled.push('must-have goals');
-  if (brief.product_context.nice_to_have_goals.length > 0) pcFilled.push('nice-to-have goals');
+  const infoMatrix = formatBriefForPrompt(brief);
 
-  const fnFilled: string[] = [];
-  if (brief.functional.user_segments.length > 0) fnFilled.push('user segments');
-  if (brief.functional.jobs_to_be_done.length > 0) fnFilled.push('jobs to be done');
-  if (brief.functional.current_workflows.length > 0) fnFilled.push('current workflows');
-  if (brief.functional.desired_workflows.length > 0) fnFilled.push('desired workflows');
-  if (brief.functional.features.length > 0) fnFilled.push('features');
-  if (brief.functional.system_behaviors.length > 0) fnFilled.push('system behaviors');
-  if (brief.functional.integrations.length > 0) fnFilled.push('integrations');
-  if (brief.functional.data_entities.length > 0) fnFilled.push('data entities');
-  if (brief.functional.roles_permissions.length > 0) fnFilled.push('roles/permissions');
-  if (brief.functional.edge_cases.length > 0) fnFilled.push('edge cases');
-  if (brief.functional.acceptance_criteria.length > 0) fnFilled.push('acceptance criteria');
-
-  const aeFilled: string[] = [];
-  if (brief.aesthetics.brand_personality.length > 0) aeFilled.push('brand personality');
-  if (cv(brief.aesthetics.tone_of_voice).trim()) aeFilled.push('tone of voice');
-  if (brief.aesthetics.desired_emotions.length > 0) aeFilled.push('desired emotions');
-  if (brief.aesthetics.visual_style_keywords.length > 0) aeFilled.push('visual style');
-  if (brief.aesthetics.reference_products.length > 0) aeFilled.push('reference products');
-  if (brief.aesthetics.liked_patterns.length > 0) aeFilled.push('liked patterns');
-  if (brief.aesthetics.disliked_patterns.length > 0) aeFilled.push('disliked patterns');
-  if (brief.aesthetics.color_preferences.length > 0) aeFilled.push('color preferences');
-  if (brief.aesthetics.color_avoidances.length > 0) aeFilled.push('color avoidances');
-  if (brief.aesthetics.typography_direction.length > 0) aeFilled.push('typography');
-  if (brief.aesthetics.imagery_direction.length > 0) aeFilled.push('imagery/iconography');
-  if (brief.aesthetics.interaction_principles.length > 0) aeFilled.push('interaction principles');
-  if (brief.aesthetics.accessibility_expectations.length > 0) aeFilled.push('accessibility expectations');
-  if (brief.aesthetics.ui_constraints.length > 0) aeFilled.push('UI constraints');
-
-  const greetings = clientName
-    ? `Welcome${projectName ? ` to the ${projectName} project` : ''}, ${clientName}!`
-    : 'Welcome!';
-
-  const lines: string[] = [
-    `${greetings} I've reviewed the requirement information provided for this project. Here's what I've captured so far:`,
+  const userPrompt = [
+    'You are a senior product discovery analyst. A client has submitted requirements information for a new project, and the information has been pre-parsed into a structured brief.',
     '',
-  ];
-
-  const summaries: string[] = [];
-  const pcSummary = domainSummary('Product Context', coverage.productContext, pcFilled);
-  const fnSummary = domainSummary('Functional Requirements', coverage.functional, fnFilled);
-  const aeSummary = domainSummary('Aesthetics & Design', coverage.aesthetics, aeFilled);
-  if (pcSummary) summaries.push(pcSummary);
-  if (fnSummary) summaries.push(fnSummary);
-  if (aeSummary) summaries.push(aeSummary);
-
-  lines.push(...summaries);
-
-  if (brief.open_questions.length > 0) {
-    lines.push('', '**Questions that came up during intake:**');
-    for (const q of brief.open_questions) {
-      lines.push(`- ${q}`);
-    }
-  }
-
-  lines.push(
+    `${clientName ? `Client name: ${clientName}` : 'Client name: not provided'}`,
+    `${projectName ? `Project name: ${projectName}` : 'Project name: not provided'}`,
     '',
-    "I'll now guide you through a structured discovery conversation to explore these areas in more depth and fill in any gaps. Feel free to correct anything I've captured, add new information, or ask questions at any point.",
-  );
+    'The following information has already been extracted and stored:',
+    '',
+    infoMatrix,
+    '',
+    'Write a brief welcoming message (2-4 short paragraphs) to the client that:',
+    '1. Greets the client warmly and acknowledges the project',
+    '2. Summarizes in natural language what key information has been captured across the three domains',
+    '3. Mentions specific details that were extracted to show you understood the intake',
+    '4. Flags any open questions that came up during intake parsing',
+    '5. Invites the client to begin the discovery conversation, encouraging them to correct anything or add more detail',
+    '',
+    'Do NOT:',
+    '- Sound robotic or template-like',
+    '- Exceed 4 short paragraphs',
+  ].join('\n');
 
-  return lines.join('\n');
+  const { text } = await generateText({
+    model: digitalocean.chat(DO_MODEL),
+    messages: [
+      { role: 'user' as const, content: userPrompt },
+    ],
+  });
+
+  return text;
 }
 
 export async function generateFallbackResponse(args: {

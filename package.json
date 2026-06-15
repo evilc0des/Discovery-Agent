@@ -12,11 +12,13 @@
     "@ai-sdk/openai": "^3.0.71",
     "@heroicons/react": "^2.2.0",
     "@supabase/supabase-js": "^2.108.1",
+    "@tailwindcss/typography": "^0.5.20",
     "ai": "^6.0.204",
     "next": "16.2.9",
     "pdf-parse": "^2.4.5",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-markdown": "^10.1.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { ChatInput } from '@/components/chat-input';
 import { SessionSidebar } from '@/components/session-sidebar';
+import { MarkdownMessage } from '@/components/markdown-message';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -428,7 +429,11 @@ export default function SessionChatPage({ params }: { params: Promise<{ id: stri
                     : 'bg-white border border-gray-200 text-gray-900'
                 }`}
               >
-                {msg.content}
+                {msg.role === 'assistant' ? (
+                  <MarkdownMessage content={msg.content} />
+                ) : (
+                  msg.content
+                )}
               </div>
             </div>
           ))}

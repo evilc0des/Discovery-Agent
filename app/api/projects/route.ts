@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
   let initialChatHistory: Array<{ role: string; content: string }> = [];
   if (hasContent) {
-    const assistantMessage = generateInitialAssistantMessage({
+    const assistantMessage = await generateInitialAssistantMessage({
       clientName: clientName || undefined,
       projectName: projectName || undefined,
       brief: structuredBrief,
