@@ -33,10 +33,13 @@ export function SessionSidebar({ projectName, clientName, coverage, status }: Se
     <aside className="flex flex-col h-full">
       <div className="px-5 py-5 border-b border-gray-100">
         <div className="flex items-center gap-2.5 mb-1">
-          <div className="w-8 h-8 rounded-lg bg-gray-900 p-1 flex items-center justify-center md:w-10 md:h-10">
-            <Image src="/appato-logo.png" alt="Discovery Agent Icon" className="w-6 h-6 md:w-8 md:h-8" width={32} height={32} />
+          <div className="w-10 h-10 rounded-lg bg-gray-900 p-1 flex items-center justify-center md:w-12 md:h-12">
+            <Image src="/appato-logo.png" alt="Discovery Agent Icon" className="w-8 h-8 md:w-10 md:h-10" width={32} height={32} />
           </div>
-          <h2 className="text-lg font-semibold text-gray-900">Discovery Agent</h2>
+          <div className="flex flex-col items-start">
+            <h2 className="font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Appato</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Discovery Agent</h2>
+          </div>
         </div>
         <p className="text-sm text-gray-500 mt-2 leading-relaxed">
           Hello! I&apos;ll guide you through a structured conversation to define your project requirements across

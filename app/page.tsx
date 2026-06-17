@@ -10,9 +10,10 @@ export default function Home() {
         </div>
 
         <div className="flex flex-col gap-3">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-zinc-50">
-            Discovery Agent
-          </h1>
+          <div className="flex flex-col items-center gap-1">
+            <h2 className="font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">Appato</h2>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-zinc-100">Discovery Agent</h1>
+          </div>
           <p className="text-lg leading-relaxed text-gray-500 dark:text-zinc-400">
             AI-powered client requirement intake. A structured discovery session
             that captures your project&apos;s product context, functional needs,
