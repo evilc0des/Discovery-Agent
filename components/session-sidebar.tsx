@@ -44,6 +44,9 @@ export function SessionSidebar({ projectName, clientName, coverage, status }: Se
         <p className="text-sm text-gray-500 mt-2 leading-relaxed">
           Hello! I&apos;ll guide you through a structured conversation to define your project requirements across
           product context, functional needs, and aesthetic direction.
+          <br/>
+          <br/>
+          You should expect to spend around 15-20 minutes providing detailed answers. The more thorough you are, the better the final brief will be!
         </p>
       </div>
 
