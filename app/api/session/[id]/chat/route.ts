@@ -33,7 +33,8 @@ export async function POST(
 
   if (contentType.includes('multipart/form-data')) {
     const formData = await request.formData();
-    message = (formData.get('message') as string) || '';
+    const rawMessage = formData.get('message');
+    message = typeof rawMessage === 'string' ? rawMessage : '';
     const file = formData.get('file') as File | null;
 
     if (file && file.size > 0) {
@@ -57,7 +58,7 @@ export async function POST(
     }
   } else {
     const body = await request.json();
-    message = body.message || '';
+    message = typeof body.message === 'string' ? body.message : '';
   }
 
   const fetchedWebsitesData: Array<{
